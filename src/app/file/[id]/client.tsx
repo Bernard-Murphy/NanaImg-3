@@ -299,7 +299,7 @@ export default function FilePageClient() {
                 file.mimeType.startsWith("image/") ? (
                   <img
                     src={file.fileUrl}
-                    alt={file.name || "anon"}
+                    alt={file.name || "Untitled"}
                     className="w-full h-auto max-h-[600px] object-contain"
                   />
                 ) : file.mimeType.startsWith("video/") ? (

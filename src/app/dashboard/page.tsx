@@ -292,7 +292,7 @@ function DashboardPageContent() {
                             href={`/file/${file.id}`}
                             className="font-medium hover:underline"
                           >
-                            {file.name || "anon"}
+                            {file.name || "Untitled"}
                           </Link>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                             <span>{formatDate(file.timestamp)}</span>
@@ -345,7 +345,7 @@ function DashboardPageContent() {
                             href={`/album/${album.id}`}
                             className="font-medium hover:underline"
                           >
-                            {album.name || "anon"}
+                            {album.name || "Untitled"}
                           </Link>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                             <span>{formatDate(album.timestamp)}</span>

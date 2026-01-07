@@ -212,7 +212,7 @@ function UserPageClient() {
                         {file.thumbnailUrl ? (
                           <Image
                             src={file.thumbnailUrl}
-                            alt={file.name || "anon"}
+                            alt={file.name || "Untitled"}
                             fill
                             className="object-cover"
                           />
@@ -226,7 +226,7 @@ function UserPageClient() {
                       </div>
                       <CardContent className="p-3">
                         <div className="font-medium truncate mb-2">
-                          {file.name || "anon"}
+                          {file.name || "Untitled"}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -264,7 +264,7 @@ function UserPageClient() {
                         {album.files[0]?.thumbnailUrl ? (
                           <Image
                             src={album.files[0].thumbnailUrl}
-                            alt={album.name || "anon"}
+                            alt={album.name || "Untitled"}
                             fill
                             className="object-cover"
                           />
@@ -279,7 +279,7 @@ function UserPageClient() {
                       </div>
                       <CardContent className="p-3">
                         <div className="font-medium truncate mb-2">
-                          {album.name || "anon"}
+                          {album.name || "Untitled"}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">

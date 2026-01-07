@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
@@ -19,6 +19,9 @@ import {
   Camera,
   Volume2,
   Eye,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, getFileExtension, canEmbed } from "@/lib/utils";
@@ -29,6 +32,9 @@ import {
   normalize,
   fade_out_scale_1,
   transition,
+  fade_out_left,
+  fade_out_right,
+  transition_fast,
 } from "@/lib/transitions";
 import BouncyClick from "@/components/ui/bouncy-click";
 import Counter from "@/components/ui/counter";
@@ -78,10 +84,38 @@ const ME_QUERY = gql`
   }
 `;
 
+interface DialogMotion {
+  enter: {
+    opacity?: number;
+    scale?: number;
+    x?: number;
+    y?: number;
+  };
+  exit: {
+    opacity?: number;
+    scale?: number;
+    x?: number;
+    y?: number;
+  };
+}
+
+const startingDialogMotion: DialogMotion = {
+  enter: {
+    opacity: 0,
+    scale: 1,
+  },
+  exit: {
+    opacity: 0,
+    scale: 1,
+  },
+};
+
 export default function AlbumPageClient() {
   const params = useParams();
   const albumId = parseInt(params.id as string);
   const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [dialogMotion, setDialogMotion] =
+    useState<DialogMotion>(startingDialogMotion);
 
   const { data, loading, refetch } = useQuery(ALBUM_QUERY, {
     variables: { id: albumId },
@@ -123,6 +157,77 @@ export default function AlbumPageClient() {
 
   const author = album?.user?.username || "Anon";
   const isAnon = !album?.user;
+
+  const getCurrentFileIndex = () => {
+    if (!selectedFile || !album?.files) return -1;
+    return album.files.findIndex((file: any) => file.id === selectedFile.id);
+  };
+
+  const navigateToFile = (index: number) => {
+    if (album?.files && index >= 0 && index < album.files.length) {
+      setSelectedFile(album.files[index]);
+    }
+  };
+
+  useEffect(() => {
+    if (dialogMotion.enter?.x || 0 < 0)
+      navigateToFile(getCurrentFileIndex() - 1);
+    if (dialogMotion.enter?.x || 0 > 0)
+      navigateToFile(getCurrentFileIndex() + 1);
+  }, [JSON.stringify(dialogMotion)]);
+
+  useEffect(() => {
+    if (!selectedFile) setDialogMotion(startingDialogMotion);
+  }, [selectedFile]);
+
+  const goToPrevious = () => {
+    const currentIndex = getCurrentFileIndex();
+    if (currentIndex > 0) {
+      if ((dialogMotion.enter?.x || 0) < 0) navigateToFile(currentIndex - 1);
+      else {
+        console.log("else");
+        setDialogMotion({
+          enter: {
+            opacity: 0,
+            scale: 1,
+            x: -100,
+          },
+          exit: {
+            opacity: 0,
+            scale: 1,
+            x: 100,
+          },
+        });
+      }
+    }
+  };
+
+  const goToNext = () => {
+    const currentIndex = getCurrentFileIndex();
+    if (currentIndex < (album?.files?.length || 0) - 1) {
+      if ((dialogMotion.enter?.x || 0) > 0) navigateToFile(currentIndex + 1);
+      else
+        setDialogMotion({
+          enter: {
+            opacity: 0,
+            scale: 1,
+            x: 100,
+          },
+          exit: {
+            opacity: 0,
+            scale: 1,
+            x: -100,
+          },
+        });
+    }
+  };
+
+  const copyLink = (bb?: boolean) => {
+    let toCopy = selectedFile.fileUrl;
+    if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
+    navigator.clipboard.writeText(toCopy);
+    toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
+  };
 
   return (
     <motion.div
@@ -187,7 +292,7 @@ export default function AlbumPageClient() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h1 className="text-3xl font-bold mb-2">
-                        {album.name || "anon"}
+                        {album.name || "Untitled"}
                       </h1>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div>
@@ -271,7 +376,7 @@ export default function AlbumPageClient() {
                         {file.thumbnailUrl ? (
                           <Image
                             src={file.thumbnailUrl}
-                            alt={file.name || "anon"}
+                            alt={file.name || "Untitled"}
                             fill
                             className="object-cover"
                           />
@@ -283,7 +388,7 @@ export default function AlbumPageClient() {
                       </div>
                       <div className="p-2">
                         <div className="text-xs font-medium truncate">
-                          {file.name || "anon"}
+                          {file.name || "Untitled"}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {getFileExtension(file.fileName)}
@@ -303,84 +408,148 @@ export default function AlbumPageClient() {
                   open={!!selectedFile}
                   onOpenChange={() => setSelectedFile(null)}
                 >
-                  <DialogContent className="[&>button]:hidden max-w-4xl">
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h2 className="text-xl font-bold">
-                            {selectedFile.name}
-                          </h2>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedFile.fileName}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`/file/${selectedFile.id}`}>
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Open
-                            </Link>
-                          </Button>
-                          <Button asChild size="sm">
-                            <a
-                              href={selectedFile.fileUrl}
-                              download
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </a>
-                          </Button>
-                          <BouncyClick>
-                            <Button
-                              onClick={() => setSelectedFile(null)}
-                              variant="ghost"
-                              size="sm"
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Close
-                            </Button>
-                          </BouncyClick>
-                        </div>
-                      </div>
+                  <DialogContent className="[&>button]:hidden max-w-4xl overflow-x-hidden">
+                    <div className="flex items-center justify-center gap-2">
+                      <BouncyClick
+                        disabled={getCurrentFileIndex() <= 0}
+                        className="mr-2"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={goToPrevious}
+                          disabled={getCurrentFileIndex() <= 0}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                      </BouncyClick>
+                      <p className="text-muted-foreground">
+                        {getCurrentFileIndex() + 1} of{" "}
+                        {album?.files?.length || 0}
+                      </p>
+                      <BouncyClick
+                        disabled={
+                          getCurrentFileIndex() >=
+                          (album?.files?.length || 0) - 1
+                        }
+                        className="ml-2"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={goToNext}
+                          disabled={
+                            getCurrentFileIndex() >=
+                            (album?.files?.length || 0) - 1
+                          }
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </BouncyClick>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={selectedFile.id}
+                        initial={dialogMotion.enter}
+                        animate={normalize}
+                        exit={dialogMotion.exit}
+                        transition={transition_fast}
+                        className="space-y-4"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <h2 className="text-xl font-bold">
+                              {selectedFile.name || "Untitled"}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedFile.fileName}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <BouncyClick>
+                              <Button
+                                variant="outline"
+                                onClick={() => copyLink()}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy Link
+                              </Button>
+                            </BouncyClick>
+                            {selectedFile.mimeType.startsWith("image/") && (
+                              <BouncyClick>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => copyLink(true)}
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy BBCode
+                                </Button>
+                              </BouncyClick>
+                            )}
 
-                      {/* File Preview */}
-                      <div className="border rounded-lg overflow-hidden bg-muted">
-                        {canEmbed(selectedFile.mimeType) ? (
-                          selectedFile.mimeType.startsWith("image/") ? (
-                            <img
-                              src={selectedFile.fileUrl}
-                              alt={selectedFile.name}
-                              className="w-full h-auto max-h-[500px] object-contain"
-                            />
-                          ) : selectedFile.mimeType.startsWith("video/") ? (
-                            <video
-                              src={selectedFile.fileUrl}
-                              controls
-                              className="w-full h-auto max-h-[500px]"
-                            />
-                          ) : selectedFile.mimeType.startsWith("audio/") ? (
-                            <div className="p-8">
-                              <audio
+                            <BouncyClick>
+                              <Button asChild size="sm">
+                                <a
+                                  href={selectedFile.fileUrl}
+                                  download
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </a>
+                              </Button>
+                            </BouncyClick>
+                            <BouncyClick>
+                              <Button
+                                onClick={() => setSelectedFile(null)}
+                                variant="ghost"
+                                size="sm"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Close
+                              </Button>
+                            </BouncyClick>
+                          </div>
+                        </div>
+
+                        {/* File Preview */}
+                        <div className="border rounded-lg overflow-hidden bg-muted">
+                          {canEmbed(selectedFile.mimeType) ? (
+                            selectedFile.mimeType.startsWith("image/") ? (
+                              <img
+                                src={selectedFile.fileUrl}
+                                alt={selectedFile.name}
+                                className="w-full h-auto max-h-[500px] object-contain"
+                              />
+                            ) : selectedFile.mimeType.startsWith("video/") ? (
+                              <video
                                 src={selectedFile.fileUrl}
                                 controls
-                                className="w-full"
+                                className="w-full h-auto max-h-[500px]"
                               />
+                            ) : selectedFile.mimeType.startsWith("audio/") ? (
+                              <div className="p-8">
+                                <audio
+                                  src={selectedFile.fileUrl}
+                                  controls
+                                  className="w-full"
+                                />
+                              </div>
+                            ) : null
+                          ) : (
+                            <div className="flex items-center justify-center p-12">
+                              <div className="text-center">
+                                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">
+                                  This file type cannot be previewed
+                                </p>
+                              </div>
                             </div>
-                          ) : null
-                        ) : (
-                          <div className="flex items-center justify-center p-12">
-                            <div className="text-center">
-                              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                              <p className="text-muted-foreground">
-                                This file type cannot be previewed
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
                   </DialogContent>
                 </Dialog>
               )}

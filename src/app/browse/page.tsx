@@ -16,7 +16,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, FileText, MessageSquare, Eye, ArrowUp } from "lucide-react";
+import {
+  Search,
+  FileText,
+  MessageSquare,
+  Eye,
+  ArrowUp,
+  Camera,
+  Film,
+  Volume2,
+  FolderOpen,
+} from "lucide-react";
 import { getFileExtension } from "@/lib/utils";
 import BouncyClick from "@/components/ui/bouncy-click";
 import { AnimatePresence, motion } from "framer-motion";
@@ -297,6 +307,18 @@ function BrowsePageContent() {
   );
 }
 
+const getFileIcon = (mimeType: string) => {
+  if (mimeType.startsWith("image/"))
+    return <Camera className="h-12 w-12 text-muted-foreground" />;
+  if (mimeType.startsWith("video/"))
+    return <Film className="h-12 w-12 text-muted-foreground" />;
+  if (mimeType.startsWith("audio/"))
+    return <Volume2 className="h-12 w-12 text-muted-foreground" />;
+  if (mimeType.length)
+    return <FileText className="h-12 w-12 text-muted-foreground" />;
+  return <FolderOpen className="h-12 w-12 text-muted-foreground" />;
+};
+
 function BrowseItem({ item }: { item: any }) {
   const isFile = item.__typename === "File";
   const isAlbum = item.__typename === "Album";
@@ -339,7 +361,7 @@ function BrowseItem({ item }: { item: any }) {
             </div>
           ) : (
             <div className="aspect-square relative bg-muted flex items-center justify-center">
-              <FileText className="h-16 w-16 text-muted-foreground" />
+              {getFileIcon(item.mimeType || "")}
             </div>
           )}
 
