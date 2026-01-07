@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { X, Download, Search } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const GNAA_SEARCH = gql`
   query GnaaSearch(
@@ -101,7 +108,13 @@ export default function JackieSinghPage() {
   const hasMore = data?.gnaaSearch?.hasMore || false;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">GNAA/2600 IRC Search</h1>
@@ -262,6 +275,6 @@ export default function JackieSinghPage() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

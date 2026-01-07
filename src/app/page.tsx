@@ -22,6 +22,13 @@ import { useDragAndDrop } from "@/hooks/use-drag-and-drop";
 import { DragDropContainer, DraggableItem } from "@/components/drag-and-drop";
 import { FilePreview } from "@/components/file-preview";
 import BouncyClick from "@/components/ui/bouncy-click";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition_fast,
+} from "@/lib/transitions";
 
 // const FILE_COUNT_QUERY = gql`
 //   query TotalFileCount {
@@ -319,7 +326,13 @@ function UploadPageContent() {
   }, [files.length, setIsFileSelecting]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition_fast}
+      className="container mx-auto px-4 py-8"
+    >
       {/* <div className="absolute bottom-20 right-4 bg-card p-4 rounded-lg border">
         <div className="text-2xl font-bold text-center">
           {totalFileCount.toLocaleString()}
@@ -520,7 +533,7 @@ function UploadPageContent() {
           Created by Bernard Murphy
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

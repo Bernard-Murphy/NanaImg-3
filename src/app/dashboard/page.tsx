@@ -14,6 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Trash2, Eye, MessageSquare, ArrowUp } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const ME_QUERY = gql`
   query Me {
@@ -167,7 +174,13 @@ function DashboardPageContent() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold">Dashboard</h1>
 
@@ -278,7 +291,7 @@ function DashboardPageContent() {
                             href={`/file/${file.id}`}
                             className="font-medium hover:underline"
                           >
-                            {file.name || 'anon'}
+                            {file.name || "anon"}
                           </Link>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                             <span>{formatDate(file.timestamp)}</span>
@@ -331,7 +344,7 @@ function DashboardPageContent() {
                             href={`/album/${album.id}`}
                             className="font-medium hover:underline"
                           >
-                            {album.name || 'anon'}
+                            {album.name || "anon"}
                           </Link>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                             <span>{formatDate(album.timestamp)}</span>
@@ -447,11 +460,11 @@ function DashboardPageContent() {
           )}
         </Tabs>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export default function DashboardPage() {
   return <DashboardPageContent />;

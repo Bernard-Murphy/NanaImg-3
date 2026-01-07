@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
+import { PageTransition } from '@/components/page-transition'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <Navbar />
-          <main className="min-h-screen">{children}</main>
+          <PageTransition>
+            <main className="min-h-screen">{children}</main>
+          </PageTransition>
         </Providers>
       </body>
     </html>

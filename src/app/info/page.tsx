@@ -1,8 +1,23 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 export default function InfoPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-3xl text-center font-bold">Info & Rules</h1>
         <p className="text-center text-muted-foreground">
@@ -200,6 +215,6 @@ export default function InfoPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }

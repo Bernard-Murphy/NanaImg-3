@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const RESET_PASSWORD = gql`
   mutation ResetPassword(
@@ -109,7 +116,13 @@ export default function SetPasswordPageClient() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-16">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-16"
+    >
       <Card className="max-w-md mx-auto">
         <CardHeader>
           <CardTitle>Set New Password</CardTitle>
@@ -164,6 +177,6 @@ export default function SetPasswordPageClient() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

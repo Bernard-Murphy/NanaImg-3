@@ -18,6 +18,13 @@ import {
 import { toast } from "sonner";
 import { formatDate, getFileExtension, canEmbed } from "@/lib/utils";
 import { CopeSection } from "@/components/cope-section";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const ALBUM_QUERY = gql`
   query GetAlbum($id: Int!) {
@@ -140,7 +147,13 @@ export default function AlbumPageClient() {
   const isAnon = !album.user;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Album Header */}
         <Card>
@@ -316,6 +329,6 @@ export default function AlbumPageClient() {
           </Dialog>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

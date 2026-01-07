@@ -19,6 +19,13 @@ import { toast } from "sonner";
 import { formatDate, formatFileSize, canEmbed } from "@/lib/utils";
 import { CopeSection } from "@/components/cope-section";
 import BouncyClick from "@/components/ui/bouncy-click";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const FILE_QUERY = gql`
   query GetFile($id: Int!) {
@@ -175,7 +182,13 @@ export default function FilePageClient() {
   const isAnon = !file.user;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Navigation */}
         <div className="flex justify-between items-center">
@@ -364,6 +377,6 @@ export default function FilePageClient() {
         {/* Comments */}
         <CopeSection flavor="file" contentId={fileId} />
       </div>
-    </div>
+    </motion.div>
   );
 }

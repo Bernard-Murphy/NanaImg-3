@@ -1,17 +1,24 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useParams } from 'next/navigation'
-import { gql, useQuery } from '@apollo/client'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { FileText, MessageSquare, ArrowUp, Eye } from 'lucide-react'
-import { formatDate, getFileExtension } from '@/lib/utils'
-import { CopeSection } from '@/components/cope-section'
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { gql, useQuery } from "@apollo/client";
+import Link from "next/link";
+import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { FileText, MessageSquare, ArrowUp, Eye } from "lucide-react";
+import { formatDate, getFileExtension } from "@/lib/utils";
+import { CopeSection } from "@/components/cope-section";
+import { motion } from "framer-motion";
+import {
+  fade_out,
+  normalize,
+  fade_out_scale_1,
+  transition,
+} from "@/lib/transitions";
 
 const USER_QUERY = gql`
   query GetUser($username: String!) {
@@ -59,18 +66,18 @@ const USER_QUERY = gql`
       }
     }
   }
-`
+`;
 
 function UserPageClient() {
-  const params = useParams()
-  const username = params.username as string
-  const [tab, setTab] = useState('posts')
+  const params = useParams();
+  const username = params.username as string;
+  const [tab, setTab] = useState("posts");
 
   const { data, loading } = useQuery(USER_QUERY, {
     variables: { username },
-  })
+  });
 
-  const user = data?.user
+  const user = data?.user;
 
   if (loading) {
     return (
@@ -89,7 +96,7 @@ function UserPageClient() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -107,11 +114,17 @@ function UserPageClient() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         {/* User Header */}
         <Card>
@@ -149,14 +162,21 @@ function UserPageClient() {
 
                 <div className="flex gap-6 mt-4 text-sm text-muted-foreground">
                   <div>
-                    <span className="font-medium text-foreground">{user.posts.length}</span> Posts
+                    <span className="font-medium text-foreground">
+                      {user.posts.length}
+                    </span>{" "}
+                    Posts
                   </div>
                   <div>
-                    <span className="font-medium text-foreground">{user.albums.length}</span>{' '}
+                    <span className="font-medium text-foreground">
+                      {user.albums.length}
+                    </span>{" "}
                     Albums
                   </div>
                   <div>
-                    <span className="font-medium text-foreground">{user.comments.length}</span>{' '}
+                    <span className="font-medium text-foreground">
+                      {user.comments.length}
+                    </span>{" "}
                     Comments
                   </div>
                   <div>Joined {formatDate(user.timestamp)}</div>
@@ -189,7 +209,7 @@ function UserPageClient() {
                         {file.thumbnailUrl ? (
                           <Image
                             src={file.thumbnailUrl}
-                            alt={file.name || 'anon'}
+                            alt={file.name || "anon"}
                             fill
                             className="object-cover"
                           />
@@ -202,7 +222,9 @@ function UserPageClient() {
                         )}
                       </div>
                       <CardContent className="p-3">
-                        <div className="font-medium truncate mb-2">{file.name || 'anon'}</div>
+                        <div className="font-medium truncate mb-2">
+                          {file.name || "anon"}
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
@@ -239,7 +261,7 @@ function UserPageClient() {
                         {album.files[0]?.thumbnailUrl ? (
                           <Image
                             src={album.files[0].thumbnailUrl}
-                            alt={album.name || 'anon'}
+                            alt={album.name || "anon"}
                             fill
                             className="object-cover"
                           />
@@ -253,7 +275,9 @@ function UserPageClient() {
                         </div>
                       </div>
                       <CardContent className="p-3">
-                        <div className="font-medium truncate mb-2">{album.name || 'anon'}</div>
+                        <div className="font-medium truncate mb-2">
+                          {album.name || "anon"}
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
@@ -288,16 +312,18 @@ function UserPageClient() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="text-sm text-muted-foreground">
-                          on{' '}
+                          on{" "}
                           <Link
                             href={`/${comment.flavor}/${comment.contentId}`}
                             className="hover:underline"
                           >
                             {comment.flavor} #{comment.contentId}
-                          </Link>{' '}
+                          </Link>{" "}
                           • {formatDate(comment.timestamp)}
                         </div>
-                        <div className="text-sm font-medium">{comment.karma} karma</div>
+                        <div className="text-sm font-medium">
+                          {comment.karma} karma
+                        </div>
                       </div>
                       <p className="text-sm line-clamp-2">{comment.text}</p>
                     </CardContent>
@@ -312,13 +338,12 @@ function UserPageClient() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  )
+    </motion.div>
+  );
 }
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export default function UserPage() {
   return <UserPageClient />;
 }
-

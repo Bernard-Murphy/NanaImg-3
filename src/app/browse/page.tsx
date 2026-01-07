@@ -24,6 +24,7 @@ import {
   normalize,
   fade_out,
   transition_fast,
+  transition,
   fade_out_scale_1,
 } from "@/lib/transitions";
 
@@ -140,11 +141,15 @@ function BrowsePageContent() {
 
   const items = data?.browse?.items || [];
   const hasMore = data?.browse?.hasMore || false;
-  {
-    console.log(items);
-  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={fade_out}
+      animate={normalize}
+      exit={fade_out_scale_1}
+      transition={transition}
+      className="container mx-auto px-4 py-8"
+    >
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold">Browse</h1>
 
@@ -287,7 +292,7 @@ function BrowsePageContent() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
