@@ -308,16 +308,20 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
                     </BouncyClick>
                   </AuthDialog>
                 )}
-                <Button
-                  type="submit"
+                <BouncyClick
                   disabled={creating || !commentForm.watch("text")?.trim()}
                 >
-                  {creating ? (
-                    <Spinner size="sm" color="light" />
-                  ) : (
-                    "Post Comment"
-                  )}
-                </Button>
+                  <Button
+                    type="submit"
+                    disabled={creating || !commentForm.watch("text")?.trim()}
+                  >
+                    {creating ? (
+                      <Spinner size="sm" color="light" />
+                    ) : (
+                      "Post Comment"
+                    )}
+                  </Button>
+                </BouncyClick>
               </div>
             </div>
           </div>

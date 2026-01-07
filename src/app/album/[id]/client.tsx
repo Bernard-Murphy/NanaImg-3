@@ -14,17 +14,19 @@ import {
   Download,
   FileText,
   ExternalLink,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, getFileExtension, canEmbed } from "@/lib/utils";
 import { CopeSection } from "@/components/cope-section";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   fade_out,
   normalize,
   fade_out_scale_1,
   transition,
 } from "@/lib/transitions";
+import BouncyClick from "@/components/ui/bouncy-click";
 
 const ALBUM_QUERY = gql`
   query GetAlbum($id: Int!) {
@@ -104,47 +106,8 @@ export default function AlbumPageClient() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Card className="p-8">
-            <div className="animate-pulse space-y-4">
-              <div className="h-8 bg-muted rounded w-1/4" />
-              <div className="grid grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="aspect-square bg-muted rounded" />
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (!album || album.removed) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto text-center">
-          <Card className="p-8">
-            <h1 className="text-2xl font-bold mb-4">Album Not Found</h1>
-            <p className="text-muted-foreground mb-4">
-              {album?.removed
-                ? "This album has been removed."
-                : "This album does not exist."}
-            </p>
-            <Button asChild>
-              <Link href="/browse">Browse Albums</Link>
-            </Button>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  const author = album.user?.username || `Anon ${album.anonId}`;
-  const isAnon = !album.user;
+  const author = album?.user?.username || "Anon";
+  const isAnon = !album?.user;
 
   return (
     <motion.div
@@ -154,181 +117,257 @@ export default function AlbumPageClient() {
       transition={transition}
       className="container mx-auto px-4 py-8"
     >
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Album Header */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  {album.name || "anon"}
-                </h1>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div>
-                    by{" "}
-                    {isAnon ? (
-                      <span
-                        className="px-2 py-1 rounded text-xs font-medium"
-                        style={{
-                          color: album.anonTextColor,
-                          backgroundColor: album.anonTextBackground,
-                        }}
-                      >
-                        {author}
-                      </span>
-                    ) : (
-                      <Link href={`/u/${author}`} className="hover:underline">
-                        {author}
-                      </Link>
-                    )}
-                  </div>
-                  <div>{formatDate(album.timestamp)}</div>
-                  <div>{album.views} views</div>
-                  <div>{album.files.length} files</div>
-                </div>
-              </div>
-
-              {/* Voting */}
-              <div className="flex flex-col items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleVote(1)}
-                  className={album.userVote === 1 ? "text-primary" : ""}
-                >
-                  <ArrowUp className="h-5 w-5" />
-                </Button>
-                <span className="text-xl font-bold">{album.karma}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleVote(-1)}
-                  className={album.userVote === -1 ? "text-primary" : ""}
-                >
-                  <ArrowDown className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            {album.manifesto && (
-              <p className="text-muted-foreground">{album.manifesto}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* File Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {album.files.map((file: any) => (
-            <Card
-              key={file.id}
-              className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
-              onClick={() => setSelectedFile(file)}
-            >
-              <div className="aspect-square relative bg-muted">
-                {file.thumbnailUrl ? (
-                  <Image
-                    src={file.thumbnailUrl}
-                    alt={file.name || "anon"}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <FileText className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <div className="p-2">
-                <div className="text-xs font-medium truncate">
-                  {file.name || "anon"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {getFileExtension(file.fileName)}
+      {loading ? (
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <Card className="p-8">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-muted rounded w-1/4" />
+                <div className="grid grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="aspect-square bg-muted rounded" />
+                  ))}
                 </div>
               </div>
             </Card>
-          ))}
+          </div>
         </div>
-
-        {/* Comments */}
-        <CopeSection flavor="album" contentId={albumId} />
-
-        {/* File Modal */}
-        {selectedFile && (
-          <Dialog
-            open={!!selectedFile}
-            onOpenChange={() => setSelectedFile(null)}
-          >
-            <DialogContent className="max-w-4xl">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold">{selectedFile.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedFile.fileName}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/file/${selectedFile.id}`}>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm">
-                      <a
-                        href={selectedFile.fileUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* File Preview */}
-                <div className="border rounded-lg overflow-hidden bg-muted">
-                  {canEmbed(selectedFile.mimeType) ? (
-                    selectedFile.mimeType.startsWith("image/") ? (
-                      <img
-                        src={selectedFile.fileUrl}
-                        alt={selectedFile.name}
-                        className="w-full h-auto max-h-[500px] object-contain"
-                      />
-                    ) : selectedFile.mimeType.startsWith("video/") ? (
-                      <video
-                        src={selectedFile.fileUrl}
-                        controls
-                        className="w-full h-auto max-h-[500px]"
-                      />
-                    ) : selectedFile.mimeType.startsWith("audio/") ? (
-                      <div className="p-8">
-                        <audio
-                          src={selectedFile.fileUrl}
-                          controls
-                          className="w-full"
-                        />
-                      </div>
-                    ) : null
-                  ) : (
-                    <div className="flex items-center justify-center p-12">
-                      <div className="text-center">
-                        <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">
-                          This file type cannot be previewed
-                        </p>
+      ) : (
+        <AnimatePresence mode="wait">
+          {!album || album.removed ? (
+            <motion.div
+              initial={fade_out}
+              animate={normalize}
+              exit={fade_out_scale_1}
+              key="not-found"
+              transition={transition}
+              className="container mx-auto px-4 py-8"
+            >
+              <div className="max-w-6xl mx-auto text-center">
+                <Card className="p-8">
+                  <h1 className="text-2xl font-bold mb-4">Album Not Found</h1>
+                  <p className="text-muted-foreground mb-4">
+                    {album?.removed
+                      ? "This album has been removed."
+                      : "This album does not exist."}
+                  </p>
+                  <Button asChild>
+                    <Link href="/browse">Browse Albums</Link>
+                  </Button>
+                </Card>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="exists"
+              initial={fade_out}
+              animate={normalize}
+              exit={fade_out_scale_1}
+              transition={transition}
+              className="max-w-6xl mx-auto space-y-6"
+            >
+              {/* Album Header */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h1 className="text-3xl font-bold mb-2">
+                        {album.name || "anon"}
+                      </h1>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div>
+                          {isAnon ? (
+                            <>
+                              {author + " "}
+                              <span
+                                className="px-2 py-1 rounded text-xs font-medium"
+                                style={{
+                                  color: album.anonTextColor,
+                                  backgroundColor: album.anonTextBackground,
+                                }}
+                              >
+                                {album.anonId}
+                              </span>
+                            </>
+                          ) : (
+                            <Link
+                              href={`/u/${author}`}
+                              className="hover:underline"
+                            >
+                              {author}
+                            </Link>
+                          )}
+                        </div>
+                        <div>{formatDate(album.timestamp)}</div>
+                        <div>{album.views} views</div>
                       </div>
                     </div>
+
+                    {/* Voting */}
+                    <div className="flex flex-col items-center gap-2">
+                      <BouncyClick>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleVote(1)}
+                          className={album.userVote === 1 ? "text-primary" : ""}
+                        >
+                          <ArrowUp className="h-5 w-5" />
+                        </Button>
+                      </BouncyClick>
+                      <span className="text-xl font-bold">{album.karma}</span>
+                      <BouncyClick>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleVote(-1)}
+                          className={
+                            album.userVote === -1 ? "text-primary" : ""
+                          }
+                        >
+                          <ArrowDown className="h-5 w-5" />
+                        </Button>
+                      </BouncyClick>
+                    </div>
+                  </div>
+
+                  {album.manifesto && (
+                    <p className="text-muted-foreground">{album.manifesto}</p>
                   )}
-                </div>
+                </CardContent>
+              </Card>
+              <h2 className="text-2xl font-bold">
+                Files ({album.files.length})
+              </h2>
+              {/* File Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {album.files.map((file: any) => (
+                  <BouncyClick key={file.id}>
+                    <Card
+                      className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => setSelectedFile(file)}
+                    >
+                      <div className="aspect-square relative bg-muted">
+                        {file.thumbnailUrl ? (
+                          <Image
+                            src={file.thumbnailUrl}
+                            alt={file.name || "anon"}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <FileText className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2">
+                        <div className="text-xs font-medium truncate">
+                          {file.name || "anon"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {getFileExtension(file.fileName)}
+                        </div>
+                      </div>
+                    </Card>
+                  </BouncyClick>
+                ))}
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+
+              {/* Comments */}
+              <CopeSection flavor="album" contentId={albumId} />
+
+              {/* File Modal */}
+              {selectedFile && (
+                <Dialog
+                  open={!!selectedFile}
+                  onOpenChange={() => setSelectedFile(null)}
+                >
+                  <DialogContent className="[&>button]:hidden max-w-4xl">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h2 className="text-xl font-bold">
+                            {selectedFile.name}
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedFile.fileName}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/file/${selectedFile.id}`}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Open
+                            </Link>
+                          </Button>
+                          <Button asChild size="sm">
+                            <a
+                              href={selectedFile.fileUrl}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </a>
+                          </Button>
+                          <BouncyClick>
+                            <Button
+                              onClick={() => setSelectedFile(null)}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              <X className="h-4 w-4" />
+                              Close
+                            </Button>
+                          </BouncyClick>
+                        </div>
+                      </div>
+
+                      {/* File Preview */}
+                      <div className="border rounded-lg overflow-hidden bg-muted">
+                        {canEmbed(selectedFile.mimeType) ? (
+                          selectedFile.mimeType.startsWith("image/") ? (
+                            <img
+                              src={selectedFile.fileUrl}
+                              alt={selectedFile.name}
+                              className="w-full h-auto max-h-[500px] object-contain"
+                            />
+                          ) : selectedFile.mimeType.startsWith("video/") ? (
+                            <video
+                              src={selectedFile.fileUrl}
+                              controls
+                              className="w-full h-auto max-h-[500px]"
+                            />
+                          ) : selectedFile.mimeType.startsWith("audio/") ? (
+                            <div className="p-8">
+                              <audio
+                                src={selectedFile.fileUrl}
+                                controls
+                                className="w-full"
+                              />
+                            </div>
+                          ) : null
+                        ) : (
+                          <div className="flex items-center justify-center p-12">
+                            <div className="text-center">
+                              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                              <p className="text-muted-foreground">
+                                This file type cannot be previewed
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </motion.div>
   );
 }

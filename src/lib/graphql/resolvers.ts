@@ -92,8 +92,11 @@ export const resolvers = {
 
   BrowseItem: {
     __resolveType(obj: any) {
-      if (obj.hashedFileName) return "File";
-      if (obj.files !== undefined) return "Album";
+      if (obj.hashedFileName !== undefined) return "File";
+      if (Array.isArray(obj.files)) return "Album";
+      if (Array.isArray(obj.items)) return "Timeline";
+      // Fallback - this shouldn't happen
+      console.warn("Could not resolve BrowseItem type for:", obj);
       return "Timeline";
     },
   },
@@ -385,7 +388,8 @@ export const resolvers = {
           skip: filter === "files" ? skip : 0,
           take: filter === "files" ? limit : limit,
         });
-        items.push(...files);
+        // Add __typename for GraphQL union resolution
+        items.push(...files.map(file => ({ ...file, __typename: "File" })));
       }
 
       if (filter === "all" || filter === "albums") {
@@ -394,8 +398,18 @@ export const resolvers = {
           orderBy,
           skip: filter === "albums" ? skip : 0,
           take: filter === "albums" ? limit : limit,
+          include: {
+            files: {
+              select: {
+                thumbnailUrl: true,
+                mimeType: true,
+              },
+              take: 1, // Only need one file for thumbnail
+            },
+          },
         });
-        items.push(...albums);
+        // Add __typename for GraphQL union resolution
+        items.push(...albums.map(album => ({ ...album, __typename: "Album" })));
       }
 
       if (filter === "all" || filter === "timelines") {
@@ -404,8 +418,14 @@ export const resolvers = {
           orderBy,
           skip: filter === "timelines" ? skip : 0,
           take: filter === "timelines" ? limit : limit,
+          include: {
+            items: {
+              take: 1, // Just to ensure items field exists
+            },
+          },
         });
-        items.push(...timelines);
+        // Add __typename for GraphQL union resolution
+        items.push(...timelines.map(timeline => ({ ...timeline, __typename: "Timeline" })));
       }
 
       // Sort combined items
