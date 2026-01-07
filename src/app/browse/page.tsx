@@ -27,6 +27,13 @@ import {
   fade_out_scale_1,
 } from "@/lib/transitions";
 
+// Helper function to get display name
+const getDisplayName = (item: any) => {
+  if (item.name) return item.name;
+  if (item.__typename === "File") return item.fileName;
+  return "Untitled";
+};
+
 const BROWSE_QUERY = gql`
   query Browse(
     $page: Int
@@ -46,6 +53,7 @@ const BROWSE_QUERY = gql`
         ... on File {
           id
           name
+          fileName
           timestamp
           thumbnailUrl
           mimeType
@@ -56,6 +64,8 @@ const BROWSE_QUERY = gql`
             username
           }
           anonId
+          anonTextColor
+          anonTextBackground
         }
         ... on Album {
           id
@@ -68,6 +78,8 @@ const BROWSE_QUERY = gql`
             username
           }
           anonId
+          anonTextColor
+          anonTextBackground
           files {
             thumbnailUrl
             mimeType
@@ -84,6 +96,8 @@ const BROWSE_QUERY = gql`
             username
           }
           anonId
+          anonTextColor
+          anonTextBackground
         }
       }
       total
@@ -207,7 +221,7 @@ function BrowsePageContent() {
               exit={fade_out_scale_1}
               transition={transition_fast}
               key="loading"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3"
             >
               {[...Array(9)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -225,7 +239,7 @@ function BrowsePageContent() {
               exit={fade_out_scale_1}
               transition={transition_fast}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                 {items.map((item: any) => (
                   <BrowseItem
                     key={`${item.__typename}-${item.id}`}
@@ -245,7 +259,7 @@ function BrowsePageContent() {
 
               {items.length > 0 && (
                 <div className="flex justify-center gap-4 mt-4">
-                  <BouncyClick>
+                  <BouncyClick disabled={page === 1}>
                     <Button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
@@ -258,7 +272,7 @@ function BrowsePageContent() {
                   <span className="flex items-center text-sm text-muted-foreground">
                     Page {page}
                   </span>
-                  <BouncyClick>
+                  <BouncyClick disabled={!hasMore}>
                     <Button
                       onClick={() => setPage((p) => p + 1)}
                       disabled={!hasMore}
@@ -295,7 +309,9 @@ function BrowseItem({ item }: { item: any }) {
     : null;
 
   const showEmbed = thumbnail || (isFile && item.mimeType.startsWith("image/"));
-
+  const author = item.user?.username || "Anon";
+  const isAnon = !item.user;
+  console.log(item);
   return (
     <BouncyClick>
       <Link href={href}>
@@ -305,13 +321,13 @@ function BrowseItem({ item }: { item: any }) {
               {thumbnail ? (
                 <Image
                   src={thumbnail}
-                  alt={item.name || "anon"}
+                  alt={getDisplayName(item)}
                   fill
                   className="object-cover"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-4xl font-bold text-muted-foreground">
-                  {getFileExtension(item.name || "anon")}
+                  {getFileExtension(getDisplayName(item))}
                 </div>
               )}
             </div>
@@ -321,28 +337,55 @@ function BrowseItem({ item }: { item: any }) {
             </div>
           )}
 
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base truncate">
-              {item.name || "anon"}
-            </CardTitle>
-            <div className="text-sm text-muted-foreground">
-              by {item.user?.username || `Anon ${item.anonId}`}
-            </div>
-          </CardHeader>
+          <CardContent className="p-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-muted-foreground">
+                  #{item.id}
+                </span>
+                {isFile && (
+                  <span className="text-xs text-muted-foreground">
+                    {item.mimeType.split("/")[1]?.toUpperCase()}
+                  </span>
+                )}
+              </div>
 
-          <CardContent className="pt-0">
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {item.views}
+              <div className="text-sm font-medium truncate">
+                {getDisplayName(item)}
               </div>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                {item.commentCount}
+
+              <div className="text-xs text-muted-foreground">
+                {isAnon ? (
+                  <>
+                    {author + " "}
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xs font-medium"
+                      style={{
+                        color: item.anonTextColor,
+                        backgroundColor: item.anonTextBackground,
+                      }}
+                    >
+                      {item.anonId}
+                    </span>
+                  </>
+                ) : (
+                  <span>{author}</span>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <ArrowUp className="h-3 w-3" />
-                {item.karma}
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-3 w-3" />
+                  {item.views}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  {item.commentCount}
+                </div>
+                <div className="flex items-center gap-1">
+                  <ArrowUp className="h-3 w-3" />
+                  {item.karma}
+                </div>
               </div>
             </div>
           </CardContent>

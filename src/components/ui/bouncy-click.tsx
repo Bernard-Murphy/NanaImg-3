@@ -7,21 +7,26 @@ interface Ripple {
   y: number;
 }
 
+interface BouncyClickProps {
+  noRipple?: boolean;
+  children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+  props?: React.HTMLAttributes<HTMLDivElement>;
+}
+
 const BouncyClick = ({
   children,
   className,
   noRipple,
+  disabled,
   ...props
-}: {
-  noRipple?: boolean;
-  children: React.ReactNode;
-  className?: string;
-  props?: React.HTMLAttributes<HTMLDivElement>;
-}) => {
+}: BouncyClickProps) => {
   const [ripples, setRipples] = useState<Ripple[]>([] as Ripple[]);
   const [pressing, setPressing] = useState(false);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (disabled) return;
     setPressing(true);
     const button = e.currentTarget;
     const rect = button.getBoundingClientRect();
@@ -46,9 +51,9 @@ const BouncyClick = ({
 
   return (
     <div
-      className={`relative overflow-hidden duration-200 transition-all cursor-pointer ${
-        pressing ? "scale-95" : ""
-      } ${className || ""}`}
+      className={`relative overflow-hidden duration-200 transition-all ${
+        !disabled ? "cursor-pointer" : ""
+      } ${pressing ? "scale-95" : ""} ${className || ""}`}
       onClick={handleClick}
       {...props}
     >

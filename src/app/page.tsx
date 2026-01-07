@@ -516,6 +516,9 @@ function UploadPageContent() {
           </a>{" "}
           apply.
         </p>
+        <p className=" mt-2 text-xs text-muted-foreground text-center">
+          Created by Bernard Murphy
+        </p>
       </div>
     </div>
   );

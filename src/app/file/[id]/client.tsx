@@ -52,6 +52,14 @@ const FILE_QUERY = gql`
   }
 `;
 
+const NEXT_FILE_EXISTS_QUERY = gql`
+  query NextFileExists($id: Int!) {
+    file(id: $id) {
+      id
+    }
+  }
+`;
+
 const VOTE_MUTATION = gql`
   mutation Vote($flavor: String!, $contentId: Int!, $vote: Int!) {
     vote(flavor: $flavor, contentId: $contentId, vote: $vote)
@@ -75,6 +83,10 @@ export default function FilePageClient() {
     variables: { id: fileId },
   });
   const { data: meData } = useQuery(ME_QUERY);
+  const { data: nextFileData } = useQuery(NEXT_FILE_EXISTS_QUERY, {
+    variables: { id: fileId + 1 },
+    skip: loading, // Don't run until we know the current file exists
+  });
   const [vote] = useMutation(VOTE_MUTATION);
 
   const file = data?.file;
@@ -172,6 +184,7 @@ export default function FilePageClient() {
               variant="outline"
               size="sm"
               onClick={() => router.push(`/file/${fileId + 1}`)}
+              disabled={!nextFileData?.file}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Next
@@ -202,7 +215,6 @@ export default function FilePageClient() {
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div>
-                    by{" "}
                     {isAnon ? (
                       <>
                         {author + " "}
@@ -223,7 +235,9 @@ export default function FilePageClient() {
                     )}
                   </div>
                   <div>{formatDate(file.timestamp)}</div>
-                  <div>{file.views} views</div>
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" /> {file.views}
+                  </div>
                   {file.album && (
                     <Link
                       href={`/album/${file.album.id}`}

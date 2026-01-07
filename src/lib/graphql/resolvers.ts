@@ -946,8 +946,7 @@ export const resolvers = {
       const { uploads, name, manifesto, disableComments, unlisted, anonymous } =
         args;
 
-      // Default to "anon" if no name provided
-      const defaultName = name || "anon";
+      const defaultName = name;
 
       const userId = anonymous ? null : context.session.userId;
       const { anonId, anonTextColor, anonTextBackground } =
