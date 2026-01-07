@@ -21,6 +21,7 @@ import {
   fade_out_scale_1,
   transition,
 } from "@/lib/transitions";
+import Counter from "@/components/ui/counter";
 
 const ME_QUERY = gql`
   query Me {
@@ -297,15 +298,15 @@ function DashboardPageContent() {
                             <span>{formatDate(file.timestamp)}</span>
                             <span className="flex items-center gap-1">
                               <Eye className="h-3 w-3" />
-                              {file.views}
+                              <Counter count={file.views} />
                             </span>
                             <span className="flex items-center gap-1">
                               <MessageSquare className="h-3 w-3" />
-                              {file.commentCount}
+                              <Counter count={file.commentCount} />
                             </span>
                             <span className="flex items-center gap-1">
                               <ArrowUp className="h-3 w-3" />
-                              {file.karma}
+                              <Counter count={file.karma} />
                             </span>
                           </div>
                         </div>
@@ -350,15 +351,15 @@ function DashboardPageContent() {
                             <span>{formatDate(album.timestamp)}</span>
                             <span className="flex items-center gap-1">
                               <Eye className="h-3 w-3" />
-                              {album.views}
+                              <Counter count={album.views} />
                             </span>
                             <span className="flex items-center gap-1">
                               <MessageSquare className="h-3 w-3" />
-                              {album.commentCount}
+                              <Counter count={album.commentCount} />
                             </span>
                             <span className="flex items-center gap-1">
                               <ArrowUp className="h-3 w-3" />
-                              {album.karma}
+                              <Counter count={album.karma} />
                             </span>
                           </div>
                         </div>
@@ -394,7 +395,7 @@ function DashboardPageContent() {
                             {formatDate(comment.timestamp)}
                           </span>
                           <span className="text-xs font-medium">
-                            {comment.karma} karma
+                            <Counter count={comment.karma} /> karma
                           </span>
                         </div>
                         <p className="text-sm line-clamp-2">{comment.text}</p>

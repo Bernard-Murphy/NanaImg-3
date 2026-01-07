@@ -27,6 +27,7 @@ import {
   transition,
   fade_out_scale_1,
 } from "@/lib/transitions";
+import Counter from "@/components/ui/counter";
 
 // Helper function to get display name
 const getDisplayName = (item: any) => {
@@ -381,15 +382,15 @@ function BrowseItem({ item }: { item: any }) {
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Eye className="h-3 w-3" />
-                  {item.views}
+                  <Counter count={item.views} />
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  {item.commentCount}
+                  <Counter count={item.commentCount} />
                 </div>
                 <div className="flex items-center gap-1">
                   <ArrowUp className="h-3 w-3" />
-                  {item.karma}
+                  <Counter count={item.karma} />
                 </div>
               </div>
             </div>

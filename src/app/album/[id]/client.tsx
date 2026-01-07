@@ -15,6 +15,10 @@ import {
   FileText,
   ExternalLink,
   X,
+  Film,
+  Camera,
+  Volume2,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, getFileExtension, canEmbed } from "@/lib/utils";
@@ -27,6 +31,7 @@ import {
   transition,
 } from "@/lib/transitions";
 import BouncyClick from "@/components/ui/bouncy-click";
+import Counter from "@/components/ui/counter";
 
 const ALBUM_QUERY = gql`
   query GetAlbum($id: Int!) {
@@ -104,6 +109,16 @@ export default function AlbumPageClient() {
     } catch (error: any) {
       toast.warning(error.message);
     }
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith("image/"))
+      return <Camera className="h-12 w-12 text-muted-foreground" />;
+    if (mimeType.startsWith("video/"))
+      return <Film className="h-12 w-12 text-muted-foreground" />;
+    if (mimeType.startsWith("audio/"))
+      return <Volume2 className="h-12 w-12 text-muted-foreground" />;
+    return <FileText className="h-12 w-12 text-muted-foreground" />;
   };
 
   const author = album?.user?.username || "Anon";
@@ -199,7 +214,10 @@ export default function AlbumPageClient() {
                           )}
                         </div>
                         <div>{formatDate(album.timestamp)}</div>
-                        <div>{album.views} views</div>
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          <Counter count={album.views} />
+                        </div>
                       </div>
                     </div>
 
@@ -215,7 +233,9 @@ export default function AlbumPageClient() {
                           <ArrowUp className="h-5 w-5" />
                         </Button>
                       </BouncyClick>
-                      <span className="text-xl font-bold">{album.karma}</span>
+                      <span className="text-xl font-bold">
+                        <Counter count={album.karma} />
+                      </span>
                       <BouncyClick>
                         <Button
                           variant="ghost"
@@ -257,7 +277,7 @@ export default function AlbumPageClient() {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <FileText className="h-12 w-12 text-muted-foreground" />
+                            {getFileIcon(file.mimeType)}
                           </div>
                         )}
                       </div>
@@ -318,7 +338,7 @@ export default function AlbumPageClient() {
                               variant="ghost"
                               size="sm"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-4 w-4 mr-2" />
                               Close
                             </Button>
                           </BouncyClick>

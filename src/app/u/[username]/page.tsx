@@ -19,6 +19,7 @@ import {
   fade_out_scale_1,
   transition,
 } from "@/lib/transitions";
+import Counter from "@/components/ui/counter";
 
 const USER_QUERY = gql`
   query GetUser($username: String!) {
@@ -151,7 +152,9 @@ function UserPageClient() {
                     )}
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold">{user.karma}</div>
+                    <div className="text-2xl font-bold">
+                      <Counter count={user.karma} />
+                    </div>
                     <div className="text-sm text-muted-foreground">Karma</div>
                   </div>
                 </div>
@@ -228,15 +231,15 @@ function UserPageClient() {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            {file.views}
+                            <Counter count={file.views} />
                           </div>
                           <div className="flex items-center gap-1">
                             <MessageSquare className="h-3 w-3" />
-                            {file.commentCount}
+                            <Counter count={file.commentCount} />
                           </div>
                           <div className="flex items-center gap-1">
                             <ArrowUp className="h-3 w-3" />
-                            {file.karma}
+                            <Counter count={file.karma} />
                           </div>
                         </div>
                       </CardContent>
@@ -281,15 +284,15 @@ function UserPageClient() {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            {album.views}
+                            <Counter count={album.views} />
                           </div>
                           <div className="flex items-center gap-1">
                             <MessageSquare className="h-3 w-3" />
-                            {album.commentCount}
+                            <Counter count={album.commentCount} />
                           </div>
                           <div className="flex items-center gap-1">
                             <ArrowUp className="h-3 w-3" />
-                            {album.karma}
+                            <Counter count={album.karma} />
                           </div>
                         </div>
                       </CardContent>
@@ -322,7 +325,7 @@ function UserPageClient() {
                           • {formatDate(comment.timestamp)}
                         </div>
                         <div className="text-sm font-medium">
-                          {comment.karma} karma
+                          <Counter count={comment.karma} /> karma
                         </div>
                       </div>
                       <p className="text-sm line-clamp-2">{comment.text}</p>

@@ -26,6 +26,7 @@ import {
   fade_out_scale_1,
   transition,
 } from "@/lib/transitions";
+import Counter from "@/components/ui/counter";
 
 const FILE_QUERY = gql`
   query GetFile($id: Int!) {
@@ -249,7 +250,7 @@ export default function FilePageClient() {
                   </div>
                   <div>{formatDate(file.timestamp)}</div>
                   <div className="flex items-center gap-1">
-                    <Eye className="h-3 w-3" /> {file.views}
+                    <Eye className="h-3 w-3" /> <Counter count={file.views} />
                   </div>
                   {file.album && (
                     <Link
@@ -344,7 +345,9 @@ export default function FilePageClient() {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Comments</div>
-                <div className="font-medium">{file.commentCount}</div>
+                <div className="font-medium">
+                  <Counter count={file.commentCount} />
+                </div>
               </div>
             </div>
 

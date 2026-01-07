@@ -25,6 +25,7 @@ import { formatDate } from "@/lib/utils";
 import BouncyClick from "./ui/bouncy-click";
 import { AuthDialog } from "@/components/auth-dialog";
 import Spinner from "./ui/spinner";
+import Counter from "./ui/counter";
 
 // Validation schema
 const commentSchema = z.object({
@@ -295,7 +296,11 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
 
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">
-                {commentForm.watch("text")?.length || 0}/1000 characters
+                <Counter
+                  count={commentForm.watch("text")?.length || 0}
+                  max={1000}
+                  fraction={true}
+                />
               </span>
               <div className="flex items-center gap-2">
                 {!meData?.me && (
