@@ -316,7 +316,7 @@ function BrowseItem({ item }: { item: any }) {
   const showEmbed = thumbnail || (isFile && item.mimeType.startsWith("image/"));
   const author = item.user?.username || "Anon";
   const isAnon = !item.user;
-  console.log(item);
+
   return (
     <BouncyClick>
       <Link href={href}>
@@ -346,7 +346,7 @@ function BrowseItem({ item }: { item: any }) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono text-muted-foreground">
-                  #{item.id}
+                  {item.__typename} #{item.id}
                 </span>
                 {isFile && (
                   <span className="text-xs text-muted-foreground">

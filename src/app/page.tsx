@@ -22,7 +22,7 @@ import { useDragAndDrop } from "@/hooks/use-drag-and-drop";
 import { DragDropContainer, DraggableItem } from "@/components/drag-and-drop";
 import { FilePreview } from "@/components/file-preview";
 import BouncyClick from "@/components/ui/bouncy-click";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   fade_out,
   normalize,
@@ -357,104 +357,124 @@ function UploadPageContent() {
           </div>
         </div>
 
-        {files.length === 0 ? (
-          <BouncyClick>
-            <div
-              id="upload-dropzone"
-              onClick={handleSelectFiles}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? "border-primary bg-primary/10"
-                  : "border-muted-foreground/25"
-              }`}
+        <AnimatePresence mode="wait">
+          {files.length === 0 ? (
+            <motion.div
+              initial={fade_out}
+              animate={normalize}
+              exit={fade_out_scale_1}
+              transition={transition_fast}
+              key="upload-dropzone"
+              className="space-y-6"
             >
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">
-                {isDragActive
-                  ? "Drop files here"
-                  : "Drag and drop, paste, or click to add files or folders"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Max file size: 1.5GB
-              </p>
-            </div>
-          </BouncyClick>
-        ) : (
-          <>
-            <DragDropContainer>
-              {files.map((file, index) => (
-                <DraggableItem
-                  key={file.id}
-                  id={file.id}
-                  index={index}
-                  isDragging={isDragging && draggedItem?.id === file.id}
-                  isDraggedOver={draggedOverIndex === index}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDragEnd={handleDragEnd}
-                  onDrop={handleDrop}
-                  className="p-4 border rounded-lg bg-card"
+              <BouncyClick>
+                <div
+                  id="upload-dropzone"
+                  onClick={handleSelectFiles}
+                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-primary bg-primary/10"
+                      : "border-muted-foreground/25"
+                  }`}
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    <FilePreview
-                      file={file.file}
-                      fileId={file.id}
-                      filePath={URL.createObjectURL(file.file)}
-                      className="w-12 h-12"
-                    />
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {file.file.name}
+                  <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">
+                    {isDragActive
+                      ? "Drop files here"
+                      : "Drag and drop, paste, or click to add files or folders"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Max file size: 1.5GB
+                  </p>
+                </div>
+              </BouncyClick>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={fade_out}
+              animate={normalize}
+              exit={fade_out_scale_1}
+              transition={transition_fast}
+              key="upload-dropzone-files"
+              className="space-y-6"
+            >
+              <DragDropContainer>
+                {files.map((file, index) => (
+                  <DraggableItem
+                    key={file.id}
+                    id={file.id}
+                    index={index}
+                    isDragging={isDragging && draggedItem?.id === file.id}
+                    isDraggedOver={draggedOverIndex === index}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDrop}
+                    className="p-4 border rounded-lg bg-card"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <FilePreview
+                        file={file.file}
+                        fileId={file.id}
+                        filePath={URL.createObjectURL(file.file)}
+                        className="w-12 h-12"
+                      />
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {file.file.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                          {uploading && (
+                            <Progress value={file.progress} className="mt-2" />
+                          )}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {(file.file.size / 1024 / 1024).toFixed(2)} MB
-                        </div>
-                        {uploading && (
-                          <Progress value={file.progress} className="mt-2" />
+                        {!uploading && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFile(file.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
-                      {!uploading && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeFile(file.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
-                  </div>
-                </DraggableItem>
-              ))}
-            </DragDropContainer>
+                  </DraggableItem>
+                ))}
+              </DragDropContainer>
 
-            <BouncyClick>
-              <div
-                id="upload-dropzone-files"
-                onClick={handleSelectFiles}
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer"
-              >
-                <p className="text-sm text-muted-foreground">
-                  Click, paste, or drag to add more files
-                </p>
-              </div>
-            </BouncyClick>
+              <BouncyClick>
+                <div
+                  id="upload-dropzone-files"
+                  onClick={handleSelectFiles}
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer"
+                >
+                  <p className="text-sm text-muted-foreground">
+                    Click, paste, or drag to add more files
+                  </p>
+                </div>
+              </BouncyClick>
 
-            <BouncyClick>
-              <Button
-                onClick={handleSubmit}
-                disabled={uploading}
-                className="w-full"
-                size="lg"
-              >
-                {uploading
-                  ? "Uploading..."
-                  : `Upload ${files.length} file${files.length > 1 ? "s" : ""}`}
-              </Button>
-            </BouncyClick>
-          </>
-        )}
+              <BouncyClick>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={uploading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {uploading
+                    ? "Uploading..."
+                    : `Upload ${files.length} file${
+                        files.length > 1 ? "s" : ""
+                      }`}
+                </Button>
+              </BouncyClick>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <Card className="p-6 space-y-4">
           <div>
