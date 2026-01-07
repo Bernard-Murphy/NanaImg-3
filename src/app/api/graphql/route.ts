@@ -4,7 +4,6 @@ import { createApolloServer } from '@/lib/graphql/apollo-server'
 import { createSessionMiddleware } from '@/lib/session'
 import { generateAnonId, generateRandomColor } from '@/lib/session'
 
-// Local function to avoid import issues
 function initializeSession(session: any) {
   if (!session.anonId) {
     session.anonId = generateAnonId()
@@ -16,7 +15,6 @@ function initializeSession(session: any) {
 const server = createApolloServer()
 const sessionMiddleware = createSessionMiddleware()
 
-// Start the server and create a single handler that gets reused
 const apolloHandlerPromise = startServerAndCreateNextHandler(server, {
   context: async (req, res) => ({
     req,
@@ -26,7 +24,6 @@ const apolloHandlerPromise = startServerAndCreateNextHandler(server, {
 })
 
 async function handler(req: NextRequest): Promise<Response> {
-  // Handle session
   return new Promise(async (resolve) => {
     const mockReq = {
       headers: Object.fromEntries(req.headers.entries()),
@@ -42,14 +39,12 @@ async function handler(req: NextRequest): Promise<Response> {
     } as any
 
     sessionMiddleware(mockReq, mockRes, async () => {
-      // Initialize anon properties if they don't exist
       if (!mockReq.session.anonId) {
         mockReq.session.anonId = generateAnonId()
         mockReq.session.anonTextColor = generateRandomColor()
         mockReq.session.anonTextBackground = generateRandomColor()
       }
 
-      // Add session to the request so context can access it
       (req as any).session = mockReq.session
 
       try {

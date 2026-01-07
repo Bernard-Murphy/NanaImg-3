@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { ArrowUp, ArrowDown, MessageSquare, Reply } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Reply, LogIn } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +22,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
+import BouncyClick from "./ui/bouncy-click";
+import { AuthDialog } from "@/components/auth-dialog";
+import Spinner from "./ui/spinner";
+
+// Validation schema
+const commentSchema = z.object({
+  text: z
+    .string()
+    .min(1, "Comment cannot be empty")
+    .max(1000, "Comment must be 1000 characters or less"),
+});
+
+type CommentForm = z.infer<typeof commentSchema>;
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  normalize,
+  fade_out,
+  transition_fast,
+  fade_out_scale_1,
+} from "@/lib/transitions";
 
 const COMMENTS_QUERY = gql`
   query Comments($flavor: String!, $contentId: Int!) {
@@ -93,16 +118,23 @@ interface CopeProps {
   contentId: number;
 }
 
-export function CopeSection({ flavor, contentId }: CopeProps) {
-  const [commentText, setCommentText] = useState("");
+function CopeSectionContent({ flavor, contentId }: CopeProps) {
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [sort, setSort] = useState<"newest" | "popular">("popular");
   const [repliesDialogOpen, setRepliesDialogOpen] = useState(false);
   const [selectedCommentReplies, setSelectedCommentReplies] = useState<
     Comment[]
   >([]);
+  const [postAnonymously, setPostAnonymously] = useState(false);
 
-  const { data: meData } = useQuery(ME_QUERY);
+  const commentForm = useForm<CommentForm>({
+    resolver: zodResolver(commentSchema),
+    defaultValues: {
+      text: "",
+    },
+  });
+
+  const { data: meData, refetch: refetchMe } = useQuery(ME_QUERY);
   const { data, loading, refetch } = useQuery(COMMENTS_QUERY, {
     variables: { flavor, contentId },
   });
@@ -121,19 +153,7 @@ export function CopeSection({ flavor, contentId }: CopeProps) {
     return b.karma - a.karma;
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!meData?.me) {
-      toast.warning("You must be logged in to comment.");
-      return;
-    }
-
-    if (commentText.length > 1000) {
-      toast.warning("Comments must be 1000 characters or less.");
-      return;
-    }
-
+  const handleSubmit = async (data: CommentForm) => {
     try {
       let recaptchaToken = "";
       if (typeof window !== "undefined" && (window as any).grecaptcha) {
@@ -151,14 +171,15 @@ export function CopeSection({ flavor, contentId }: CopeProps) {
         variables: {
           flavor,
           contentId,
-          text: commentText,
+          text: data.text,
           repliesTo: replyTo,
           recaptchaToken,
         },
       });
 
-      setCommentText("");
+      commentForm.reset();
       setReplyTo(null);
+      setPostAnonymously(false);
       refetch();
       toast.success("Comment posted");
     } catch (error: any) {
@@ -195,80 +216,157 @@ export function CopeSection({ flavor, contentId }: CopeProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Comments ({comments.length})</h2>
+        <h2 className="text-2xl font-bold">Cope Section ({comments.length})</h2>
         <div className="flex gap-2">
-          <Button
-            variant={sort === "popular" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSort("popular")}
-          >
-            Popular
-          </Button>
-          <Button
-            variant={sort === "newest" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSort("newest")}
-          >
-            Newest
-          </Button>
+          <BouncyClick>
+            <Button
+              variant={sort === "popular" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSort("popular")}
+            >
+              Popular
+            </Button>
+          </BouncyClick>
+          <BouncyClick>
+            <Button
+              variant={sort === "newest" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSort("newest")}
+            >
+              Newest
+            </Button>
+          </BouncyClick>
         </div>
       </div>
 
-      {meData?.me && (
-        <Card className="p-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {replyTo && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Reply className="h-4 w-4" />
-                Replying to comment #{replyTo}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setReplyTo(null)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-            <Textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Write a comment (Markdown supported)..."
-              maxLength={1000}
-              disabled={creating}
-            />
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">
-                {commentText.length}/1000 characters
-              </span>
-              <Button type="submit" disabled={creating || !commentText.trim()}>
-                {creating ? "Posting..." : "Post Comment"}
+      <Card className="p-4">
+        <form
+          onSubmit={commentForm.handleSubmit(handleSubmit)}
+          className="space-y-4"
+        >
+          {replyTo && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Reply className="h-4 w-4" />
+              Replying to comment #{replyTo}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyTo(null)}
+              >
+                Cancel
               </Button>
             </div>
-          </form>
-        </Card>
-      )}
+          )}
 
-      {loading ? (
-        <div>Loading comments...</div>
-      ) : sortedComments.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No comments yet. Be the first to comment!
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {sortedComments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              onVote={handleVote}
-              onReply={(id) => setReplyTo(id)}
-              onShowReplies={showReplies}
-            />
-          ))}
-        </div>
-      )}
+          <Textarea
+            {...commentForm.register("text")}
+            placeholder={
+              meData?.me
+                ? "Write a comment (Markdown supported)..."
+                : "Write an anonymous comment (Markdown supported)..."
+            }
+            disabled={creating}
+          />
+          {commentForm.formState.errors.text && (
+            <p className="text-sm text-destructive">
+              {commentForm.formState.errors.text.message}
+            </p>
+          )}
+
+          <div className="flex flex-col space-y-3">
+            {meData?.me && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="anonymous"
+                  checked={postAnonymously}
+                  onCheckedChange={(checked) =>
+                    setPostAnonymously(checked === true)
+                  }
+                />
+                <label
+                  htmlFor="anonymous"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Post anonymously
+                </label>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">
+                {commentForm.watch("text")?.length || 0}/1000 characters
+              </span>
+              <div className="flex items-center gap-2">
+                {!meData?.me && (
+                  <AuthDialog onSuccess={() => refetchMe()}>
+                    <BouncyClick>
+                      <Button variant="outline" size="sm" type="button">
+                        <LogIn className="h-4 w-4 mr-1" />
+                        Login
+                      </Button>
+                    </BouncyClick>
+                  </AuthDialog>
+                )}
+                <Button
+                  type="submit"
+                  disabled={creating || !commentForm.watch("text")?.trim()}
+                >
+                  {creating ? (
+                    <Spinner size="sm" color="light" />
+                  ) : (
+                    "Post Comment"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </Card>
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="spinner"
+            className="flex justify-center py-8 items-center h-full"
+            initial={fade_out}
+            animate={normalize}
+            exit={fade_out_scale_1}
+            transition={transition_fast}
+          >
+            <Spinner size="md" color="light" />
+          </motion.div>
+        ) : sortedComments.length === 0 ? (
+          <motion.div
+            key="no-comments"
+            className="text-center py-8 text-muted-foreground"
+            initial={fade_out}
+            animate={normalize}
+            exit={fade_out_scale_1}
+            transition={transition_fast}
+          >
+            Nobody has posted any cope. Be the first!
+          </motion.div>
+        ) : (
+          <motion.div
+            key="comments"
+            className="space-y-4"
+            initial={fade_out}
+            animate={normalize}
+            exit={fade_out_scale_1}
+            transition={transition_fast}
+          >
+            {sortedComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onVote={handleVote}
+                onReply={(id) => setReplyTo(id)}
+                onShowReplies={showReplies}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Dialog open={repliesDialogOpen} onOpenChange={setRepliesDialogOpen}>
         <DialogContent>
@@ -323,7 +421,7 @@ function CommentItem({
   if (comment.removed) {
     return (
       <Card className="p-4 bg-muted/50">
-        <p className="text-muted-foreground italic">[Comment removed]</p>
+        <p className="text-muted-foreground italic">[Cope removed]</p>
       </Card>
     );
   }
@@ -435,4 +533,8 @@ function CommentItem({
       </div>
     </Card>
   );
+}
+
+export function CopeSection({ flavor, contentId }: CopeProps) {
+  return <CopeSectionContent flavor={flavor} contentId={contentId} />;
 }

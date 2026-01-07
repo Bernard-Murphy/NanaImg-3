@@ -77,7 +77,7 @@ const DELETE_ALBUM_MUTATION = gql`
   }
 `;
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -449,4 +449,10 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export const runtime = 'edge';
+
+export default function DashboardPage() {
+  return <DashboardPageContent />;
 }

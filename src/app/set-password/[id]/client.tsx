@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
 import { gql, useMutation } from "@apollo/client";
 import {
   Card,
@@ -16,14 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const LOGIN_MUTATION = gql`
-  mutation Login(
-    $username: String!
+const RESET_PASSWORD = gql`
+  mutation ResetPassword(
+    $resetId: String!
     $password: String!
     $recaptchaToken: String
   ) {
-    login(
-      username: $username
+    resetPassword(
+      resetId: $resetId
       password: $password
       recaptchaToken: $recaptchaToken
     ) {
@@ -37,13 +36,16 @@ const LOGIN_MUTATION = gql`
   }
 `;
 
-export default function LoginPage() {
+export default function SetPasswordPageClient() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const params = useParams();
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [login] = useMutation(LOGIN_MUTATION);
+  const resetId = params.id as string;
+
+  const [resetPassword] = useMutation(RESET_PASSWORD);
 
   useEffect(() => {
     // Load reCAPTCHA if site key is available
@@ -56,6 +58,17 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast.warning("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.warning("Password must be at least 8 characters.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -65,29 +78,31 @@ export default function LoginPage() {
         try {
           recaptchaToken = await (window as any).grecaptcha.execute(
             process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-            { action: "login" }
+            { action: "reset_password" }
           );
         } catch (e) {
           console.error("reCAPTCHA error:", e);
         }
       }
 
-      const { data } = await login({
+      const { data } = await resetPassword({
         variables: {
-          username,
+          resetId,
           password,
           recaptchaToken,
         },
       });
 
-      if (data.login.success) {
-        toast.success("You have been logged in successfully.");
-        router.push("/");
+      if (data.resetPassword.success) {
+        toast.success("Password reset successfully! You are now logged in.");
+        router.push(`/u/${data.resetPassword.user.username}`);
       } else {
-        toast.warning(data.login.message || "Invalid credentials.");
+        toast.warning(
+          data.resetPassword.message || "Failed to reset password."
+        );
       }
     } catch (error: any) {
-      toast.warning(error.message || "An error occurred during login.");
+      toast.warning(error.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
@@ -97,58 +112,43 @@ export default function LoginPage() {
     <div className="container mx-auto px-4 py-16">
       <Card className="max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account
-          </CardDescription>
+          <CardTitle>Set New Password</CardTitle>
+          <CardDescription>Enter your new password</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">New Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={8}
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
                 disabled={loading}
               />
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Resetting..." : "Reset Password"}
             </Button>
 
-            <div className="text-sm text-center space-y-2">
-              <div>
-                <Link href="/register" className="text-primary hover:underline">
-                  Don&apos;t have an account? Register
-                </Link>
-              </div>
-              <div>
-                <Link
-                  href="/forgot-password"
-                  className="text-primary hover:underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
             <p className="text-xs text-muted-foreground text-center">
-              This site is protected by reCAPTCHA, and the Google&apos;{" "}
+              This site is protected by reCAPTCHA, and the Google{" "}
               <a
                 href="https://policies.google.com/privacy"
                 className="underline"

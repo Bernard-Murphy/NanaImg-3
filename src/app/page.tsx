@@ -88,7 +88,7 @@ interface FileWithProgress {
   key?: string;
 }
 
-export default function UploadPage() {
+function UploadPageContent() {
   const router = useRouter();
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [name, setName] = useState("");
@@ -445,7 +445,7 @@ export default function UploadPage() {
 
         <Card className="p-6 space-y-4">
           <div>
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Title</Label>
             <Input
               id="name"
               value={name}
@@ -519,4 +519,10 @@ export default function UploadPage() {
       </div>
     </div>
   );
+}
+
+export const runtime = "edge";
+
+export default function UploadPage() {
+  return <UploadPageContent />;
 }

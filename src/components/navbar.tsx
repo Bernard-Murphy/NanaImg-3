@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import BouncyClick from "@/components/ui/bouncy-click";
+import { AuthDialog } from "@/components/auth-dialog";
+import { LogIn } from "lucide-react";
 
 const ME_QUERY = gql`
   query Me {
@@ -34,7 +36,7 @@ const LOGOUT_MUTATION = gql`
   }
 `;
 
-export function Navbar() {
+function NavbarContent() {
   const { data, refetch } = useQuery(ME_QUERY);
   const [logout] = useMutation(LOGOUT_MUTATION);
   const router = useRouter();
@@ -89,22 +91,24 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-10 w-10 rounded-full"
-                  >
-                    <Avatar>
-                      {user.avatarFile && (
-                        <AvatarImage
-                          src={user.avatarFile.fileUrl}
-                          alt={user.username}
-                        />
-                      )}
-                      <AvatarFallback>
-                        {user.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
+                  <BouncyClick>
+                    <Button
+                      variant="ghost"
+                      className="relative h-10 w-10 rounded-full"
+                    >
+                      <Avatar>
+                        {user.avatarFile && (
+                          <AvatarImage
+                            src={user.avatarFile.fileUrl}
+                            alt={user.username}
+                          />
+                        )}
+                        <AvatarFallback>
+                          {user.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </BouncyClick>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
@@ -119,22 +123,71 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <BouncyClick>
-                  <Button asChild variant="ghost">
-                    <Link href="/login">Login</Link>
+              <BouncyClick>
+                <AuthDialog onSuccess={() => refetch()}>
+                  <Button variant="ghost">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login/Register
                   </Button>
-                </BouncyClick>
-                <BouncyClick>
-                  <Button asChild>
-                    <Link href="/register">Register</Link>
-                  </Button>
-                </BouncyClick>
-              </>
+                </AuthDialog>
+              </BouncyClick>
             )}
           </div>
         </div>
       </div>
     </nav>
   );
+}
+
+// Static navbar for SSR/static generation
+function StaticNavbar() {
+  return (
+    <nav className="border-b bg-background">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <BouncyClick noRipple>
+              <Link href="/" className="text-xl font-bold">
+                FEEDNANA
+              </Link>
+            </BouncyClick>
+            <BouncyClick>
+              <Button asChild variant="ghost">
+                <Link href="/browse" className="hover:text-primary">
+                  Browse
+                </Link>
+              </Button>
+            </BouncyClick>
+            <BouncyClick>
+              <Button asChild variant="ghost">
+                <Link href="/timeline" className="hover:text-primary">
+                  Timeline
+                </Link>
+              </Button>
+            </BouncyClick>
+            <BouncyClick>
+              <Button asChild variant="ghost">
+                <Link href="/info" className="hover:text-primary">
+                  Info
+                </Link>
+              </Button>
+            </BouncyClick>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <BouncyClick>
+              <Button variant="ghost">
+                <LogIn className="h-4 w-4 mr-2" />
+                Login/Register
+              </Button>
+            </BouncyClick>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+export function Navbar() {
+  return <NavbarContent />;
 }

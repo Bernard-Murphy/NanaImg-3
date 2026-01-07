@@ -61,7 +61,7 @@ const USER_QUERY = gql`
   }
 `
 
-export default function UserPage() {
+function UserPageClient() {
   const params = useParams()
   const username = params.username as string
   const [tab, setTab] = useState('posts')
@@ -314,5 +314,11 @@ export default function UserPage() {
       </div>
     </div>
   )
+}
+
+export const runtime = 'edge';
+
+export default function UserPage() {
+  return <UserPageClient />;
 }
 
