@@ -26,6 +26,7 @@ import {
   Film,
   Volume2,
   FolderOpen,
+  RefreshCw,
 } from "lucide-react";
 import { getFileExtension } from "@/lib/utils";
 import BouncyClick from "@/components/ui/bouncy-click";
@@ -38,6 +39,7 @@ import {
   fade_out_scale_1,
 } from "@/lib/transitions";
 import Counter from "@/components/ui/counter";
+import Spinner from "@/components/ui/spinner";
 
 // Helper function to get display name
 const getDisplayName = (item: any) => {
@@ -225,6 +227,22 @@ function BrowsePageContent() {
                   </BouncyClick>
                 </TabsList>
               </Tabs>
+            </div>
+
+            <div className="flex flex-1 justify-end items-end">
+              <BouncyClick>
+                <Button
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </BouncyClick>
             </div>
           </div>
         </Card>

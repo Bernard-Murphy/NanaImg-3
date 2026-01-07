@@ -39,75 +39,69 @@ const Spinner = ({
   multiColor,
   className,
 }: SpinnerProps) => (
-  <>
-    {typeof document !== "undefined" ? (
-      <svg
-        className={`${className || ""}`}
-        width={getSize(size)}
-        height={getSize(size)}
-        viewBox="0 0 66 66"
-        xmlns="http://www.w3.org/2000/svg"
+  <svg
+    className={`${className || ""}`}
+    width={getSize(size)}
+    height={getSize(size)}
+    viewBox="0 0 66 66"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <g>
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        values="0 33 33;270 33 33"
+        begin="0s"
+        dur="1.4s"
+        fill="freeze"
+        repeatCount="indefinite"
+      />
+      <circle
+        fill="none"
+        strokeWidth="6"
+        strokeLinecap="round"
+        cx="33"
+        cy="33"
+        r="30"
+        strokeDasharray="187"
+        strokeDashoffset="610"
       >
-        <g>
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            values="0 33 33;270 33 33"
-            begin="0s"
-            dur="1.4s"
-            fill="freeze"
-            repeatCount="indefinite"
-          />
-          <circle
-            fill="none"
-            strokeWidth="6"
-            strokeLinecap="round"
-            cx="33"
-            cy="33"
-            r="30"
-            strokeDasharray="187"
-            strokeDashoffset="610"
-          >
-            <animate
-              attributeName="stroke"
-              values={
-                multiColor
-                  ? "#4285F4;#DE3E35;#F7C223;#1B9A59;#4285F4"
-                  : color
-                  ? getComputedStyle(document.body).getPropertyValue(
-                      `--mdb-${color}`
-                    )
-                  : "#fff"
-              }
-              begin="0s"
-              dur="5.6s"
-              fill="freeze"
-              repeatCount="indefinite"
-            />
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              values="0 33 33;135 33 33;450 33 33"
-              begin="0s"
-              dur="1.4s"
-              fill="freeze"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="stroke-dashoffset"
-              values="187;46.75;187"
-              begin="0s"
-              dur="1.4s"
-              fill="freeze"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </g>
-      </svg>
-    ) : (
-      <></>
-    )}
-  </>
+        <animate
+          attributeName="stroke"
+          values={
+            multiColor
+              ? "#4285F4;#DE3E35;#F7C223;#1B9A59;#4285F4"
+              : color
+              ? getComputedStyle(document.body).getPropertyValue(
+                  `--mdb-${color}`
+                )
+              : "#fff"
+          }
+          begin="0s"
+          dur="5.6s"
+          fill="freeze"
+          repeatCount="indefinite"
+        />
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="0 33 33;135 33 33;450 33 33"
+          begin="0s"
+          dur="1.4s"
+          fill="freeze"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="stroke-dashoffset"
+          values="187;46.75;187"
+          begin="0s"
+          dur="1.4s"
+          fill="freeze"
+          repeatCount="indefinite"
+        />
+      </circle>
+    </g>
+  </svg>
 );
 
 export default Spinner;

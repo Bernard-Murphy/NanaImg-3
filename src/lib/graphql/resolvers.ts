@@ -9,6 +9,7 @@ import {
   getPresignedUploadUrl,
   completeMultipartUpload,
   getFileUrl,
+  downloadFile,
 } from "../s3";
 import { generateThumbnail } from "../thumbnail";
 import { generateAnonId, generateRandomColor } from "../session";
@@ -389,7 +390,7 @@ export const resolvers = {
           take: filter === "files" ? limit : limit,
         });
         // Add __typename for GraphQL union resolution
-        items.push(...files.map(file => ({ ...file, __typename: "File" })));
+        items.push(...files.map((file) => ({ ...file, __typename: "File" })));
       }
 
       if (filter === "all" || filter === "albums") {
@@ -409,7 +410,9 @@ export const resolvers = {
           },
         });
         // Add __typename for GraphQL union resolution
-        items.push(...albums.map(album => ({ ...album, __typename: "Album" })));
+        items.push(
+          ...albums.map((album) => ({ ...album, __typename: "Album" }))
+        );
       }
 
       if (filter === "all" || filter === "timelines") {
@@ -425,7 +428,12 @@ export const resolvers = {
           },
         });
         // Add __typename for GraphQL union resolution
-        items.push(...timelines.map(timeline => ({ ...timeline, __typename: "Timeline" })));
+        items.push(
+          ...timelines.map((timeline) => ({
+            ...timeline,
+            __typename: "Timeline",
+          }))
+        );
       }
 
       // Sort combined items
@@ -999,6 +1007,7 @@ export const resolvers = {
         );
 
         const fileUrl = getFileUrl(upload.key);
+        const hashedFileName = upload.key.split("/").pop()!;
 
         // Generate thumbnail if applicable
         let thumbnailUrl = null;
@@ -1006,8 +1015,23 @@ export const resolvers = {
           upload.mimeType.startsWith("image/") ||
           upload.mimeType.startsWith("video/")
         ) {
-          // In production, fetch file and generate thumbnail
-          // For now, skip thumbnail generation in mutation
+          try {
+            // Download the uploaded file to generate thumbnail
+            const fileBuffer = await downloadFile(upload.key);
+            thumbnailUrl = await generateThumbnail(
+              fileBuffer,
+              upload.mimeType,
+              hashedFileName
+            );
+            if (thumbnailUrl) thumbnailUrl = getFileUrl(thumbnailUrl);
+          } catch (error) {
+            console.error(
+              "Error generating thumbnail for file:",
+              upload.key,
+              error
+            );
+            // Continue without thumbnail if generation fails
+          }
         }
 
         const file = await prisma.file.create({
@@ -1017,7 +1041,7 @@ export const resolvers = {
             fileName: upload.fileName,
             fileSize: upload.fileSize,
             mimeType: upload.mimeType,
-            hashedFileName: upload.key.split("/").pop()!,
+            hashedFileName,
             fileUrl,
             thumbnailUrl,
             userId,

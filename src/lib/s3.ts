@@ -86,3 +86,13 @@ export async function deleteFile(key: string) {
 export function getFileUrl(key: string): string {
   return `${process.env.NEXT_PUBLIC_FILE_CDN_URL}/${key}`;
 }
+
+export async function downloadFile(key: string): Promise<Buffer> {
+  const params = {
+    Bucket: BUCKET_NAME,
+    Key: key,
+  };
+
+  const result = await s3.getObject(params).promise();
+  return result.Body as Buffer;
+}
