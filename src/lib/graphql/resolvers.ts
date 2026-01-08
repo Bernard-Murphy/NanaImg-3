@@ -294,9 +294,9 @@ export const resolvers = {
 
   Query: {
     me: async (_: any, __: any, context: Context) => {
-      // if (!context.session.userId) return null;
+      if (!context.session.userId) return null;
       return prisma.user.findUnique({
-        where: { id: context.session.userId || 1 },
+        where: { id: context.session.userId },
       });
     },
 
