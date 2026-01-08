@@ -22,6 +22,8 @@ import {
 } from "@/lib/transitions";
 import Counter from "@/components/ui/counter";
 import BouncyClick from "@/components/ui/bouncy-click";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const USER_QUERY = gql`
   query GetUser($username: String!) {
@@ -168,7 +170,11 @@ function UserPageClient() {
                 </div>
 
                 {user.bio && (
-                  <p className="mt-4 text-muted-foreground">{user.bio}</p>
+                  <div className="mt-4 text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {user.bio}
+                    </ReactMarkdown>
+                  </div>
                 )}
 
                 <div className="flex gap-6 mt-4 text-sm text-muted-foreground">

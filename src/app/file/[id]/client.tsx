@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 import { formatDate, formatFileSize, canEmbed } from "@/lib/utils";
 import { CopeSection } from "@/components/cope-section";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import BouncyClick from "@/components/ui/bouncy-click";
 import { motion } from "framer-motion";
 import {
@@ -120,9 +122,11 @@ export default function FilePageClient() {
     }
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(file.fileUrl);
-    toast.success("File link copied to clipboard");
+  const copyLink = (bb?: boolean) => {
+    let toCopy = file.fileUrl;
+    if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
+    navigator.clipboard.writeText(toCopy);
+    toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
   };
 
   if (loading) {
@@ -290,7 +294,11 @@ export default function FilePageClient() {
             </div>
 
             {file.manifesto && (
-              <div className="text-muted-foreground">{file.manifesto}</div>
+              <div className="text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {file.manifesto}
+                </ReactMarkdown>
+              </div>
             )}
 
             {/* File Embed */}
@@ -368,9 +376,15 @@ export default function FilePageClient() {
               </BouncyClick>
 
               <BouncyClick>
-                <Button variant="outline" onClick={copyLink}>
+                <Button variant="outline" onClick={() => copyLink()}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy Link
+                </Button>
+              </BouncyClick>
+              <BouncyClick>
+                <Button variant="outline" onClick={() => copyLink(true)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy BBCode
                 </Button>
               </BouncyClick>
             </div>

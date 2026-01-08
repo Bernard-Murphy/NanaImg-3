@@ -39,6 +39,8 @@ import {
 } from "@/lib/transitions";
 import BouncyClick from "@/components/ui/bouncy-click";
 import Counter from "@/components/ui/counter";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const ALBUM_QUERY = gql`
   query GetAlbum($id: Int!) {
@@ -358,7 +360,11 @@ export default function AlbumPageClient() {
                   </div>
 
                   {album.manifesto && (
-                    <p className="text-muted-foreground">{album.manifesto}</p>
+                    <div className="text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {album.manifesto}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </CardContent>
               </Card>

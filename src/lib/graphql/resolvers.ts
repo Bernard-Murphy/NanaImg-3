@@ -861,7 +861,6 @@ export const resolvers = {
       });
 
       // In production, send email here
-      console.log(`Password reset link: /set-password/${resetId}`);
 
       return true;
     },
@@ -1090,22 +1089,106 @@ export const resolvers = {
         throw new Error("Comment must be 1000 characters or less");
       }
 
+      // Validate flavor and that the content exists
+      if (!["album", "file", "timeline", "user"].includes(flavor)) {
+        throw new Error(`Invalid comment flavor: ${flavor}`);
+      }
+
+      // Check that the content exists for the specified flavor
+      let contentExists = false;
+      if (flavor === "album") {
+        const album = await prisma.album.findUnique({
+          where: { id: contentId },
+          select: { id: true },
+        });
+        contentExists = !!album;
+        if (!contentExists) {
+          throw new Error("Album not found");
+        }
+      } else if (flavor === "file") {
+        const file = await prisma.file.findUnique({
+          where: { id: contentId },
+          select: { id: true },
+        });
+        contentExists = !!file;
+        if (!contentExists) {
+          throw new Error("File not found");
+        }
+      } else if (flavor === "timeline") {
+        const timeline = await prisma.timeline.findUnique({
+          where: { id: contentId },
+          select: { id: true },
+        });
+        contentExists = !!timeline;
+        if (!contentExists) {
+          throw new Error("Timeline not found");
+        }
+      } else if (flavor === "user") {
+        const user = await prisma.user.findUnique({
+          where: { id: contentId },
+          select: { id: true },
+        });
+        contentExists = !!user;
+        if (!contentExists) {
+          throw new Error("User not found");
+        }
+      }
+
       const userId = context.session.userId || null;
       const { anonId, anonTextColor, anonTextBackground } =
         ensureAnonProperties(context.session);
 
-      const comment = await prisma.comment.create({
-        data: {
-          flavor,
-          contentId,
-          text,
-          repliesTo,
-          userId,
-          anonId,
-          anonTextColor,
-          anonTextBackground,
-        },
+      // Create comment within a transaction to ensure atomicity
+      const comment = await prisma.$transaction(async (tx) => {
+        // Double-check content exists right before creation (in case of race conditions)
+        if (flavor === "album") {
+          const album = await tx.album.findUnique({
+            where: { id: contentId },
+            select: { id: true },
+          });
+          if (!album) {
+            throw new Error("Album not found");
+          }
+        } else if (flavor === "file") {
+          const file = await tx.file.findUnique({
+            where: { id: contentId },
+            select: { id: true },
+          });
+          if (!file) {
+            throw new Error("File not found");
+          }
+        } else if (flavor === "timeline") {
+          const timeline = await tx.timeline.findUnique({
+            where: { id: contentId },
+            select: { id: true },
+          });
+          if (!timeline) {
+            throw new Error("Timeline not found");
+          }
+        } else if (flavor === "user") {
+          const user = await tx.user.findUnique({
+            where: { id: contentId },
+            select: { id: true },
+          });
+          if (!user) {
+            throw new Error("User not found");
+          }
+        }
+        const result = await tx.comment.create({
+          data: {
+            flavor,
+            contentId,
+            text,
+            repliesTo,
+            userId,
+            anonId,
+            anonTextColor,
+            anonTextBackground,
+          },
+        });
+        return result;
       });
+
 
       // Publish comment update
       pubsub.publish(COMMENTS_UPDATED, {

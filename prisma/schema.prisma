@@ -57,7 +57,6 @@ model File {
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
   album  Album? @relation(fields: [albumId], references: [id], onDelete: SetNull)
   
-  comments Comment[] @relation("FileComments")
   votes    Vote[]    @relation("FileVotes")
   reports  Report[]  @relation("FileReports")
   modLogs  ModLog[]  @relation("FileModLogs")
@@ -80,7 +79,6 @@ model Album {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   files    File[]
-  comments Comment[] @relation("AlbumComments")
   votes    Vote[]    @relation("AlbumVotes")
   reports  Report[]  @relation("AlbumReports")
   modLogs  ModLog[]  @relation("AlbumModLogs")
@@ -103,7 +101,6 @@ model Timeline {
   user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   items    TimelineItem[]
-  comments Comment[]      @relation("TimelineComments")
   votes    Vote[]         @relation("TimelineVotes")
   reports  Report[]       @relation("TimelineReports")
   modLogs  ModLog[]       @relation("TimelineModLogs")
@@ -138,16 +135,12 @@ model Comment {
 
   user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   replyToComment Comment?  @relation("CommentReplies", fields: [repliesTo], references: [id], onDelete: SetNull)
-  
+
   replies  Comment[] @relation("CommentReplies")
   votes    Vote[]    @relation("CommentVotes")
   reports  Report[]  @relation("CommentReports")
   modLogs  ModLog[]  @relation("CommentModLogs")
 
-  // Relations to content types
-  file     File?     @relation("FileComments", fields: [contentId], references: [id], map: "file_comments_fk")
-  album    Album?    @relation("AlbumComments", fields: [contentId], references: [id], map: "album_comments_fk")
-  timeline Timeline? @relation("TimelineComments", fields: [contentId], references: [id], map: "timeline_comments_fk")
 
   @@map("comments")
 }

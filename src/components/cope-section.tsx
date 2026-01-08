@@ -44,23 +44,166 @@ import {
   fade_out_scale_1,
 } from "@/lib/transitions";
 
-const COMMENTS_QUERY = gql`
-  query Comments($flavor: String!, $contentId: Int!) {
-    comments: ${`commentsByContent`}(flavor: $flavor, contentId: $contentId) {
-      id
-      timestamp
-      text
-      removed
-      repliesTo
-      replyCount
-      karma
-      userVote
-      user {
-        username
+const COMMENTS_BY_FILE_QUERY = gql`
+  query FileComments($contentId: Int!) {
+    file(id: $contentId) {
+      comments {
+        id
+        timestamp
+        text
+        removed
+        repliesTo
+        replyCount
+        karma
+        userVote
+        user {
+          username
+          displayName
+          avatar
+        }
+        anonId
+        anonTextColor
+        anonTextBackground
+        replies {
+          id
+          timestamp
+          text
+          removed
+          user {
+            username
+            displayName
+            avatar
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+          karma
+          userVote
+        }
       }
-      anonId
-      anonTextColor
-      anonTextBackground
+    }
+  }
+`;
+
+const COMMENTS_BY_ALBUM_QUERY = gql`
+  query AlbumComments($contentId: Int!) {
+    album(id: $contentId) {
+      comments {
+        id
+        timestamp
+        text
+        removed
+        repliesTo
+        replyCount
+        karma
+        userVote
+        user {
+          username
+          displayName
+          avatar
+        }
+        anonId
+        anonTextColor
+        anonTextBackground
+        replies {
+          id
+          timestamp
+          text
+          removed
+          user {
+            username
+            displayName
+            avatar
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+          karma
+          userVote
+        }
+      }
+    }
+  }
+`;
+
+const COMMENTS_BY_TIMELINE_QUERY = gql`
+  query TimelineComments($contentId: Int!) {
+    timeline(id: $contentId) {
+      comments {
+        id
+        timestamp
+        text
+        removed
+        repliesTo
+        replyCount
+        karma
+        userVote
+        user {
+          username
+          displayName
+          avatar
+        }
+        anonId
+        anonTextColor
+        anonTextBackground
+        replies {
+          id
+          timestamp
+          text
+          removed
+          user {
+            username
+            displayName
+            avatar
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+          karma
+          userVote
+        }
+      }
+    }
+  }
+`;
+
+const COMMENTS_BY_USER_QUERY = gql`
+  query UserComments($contentId: Int!) {
+    user(id: $contentId) {
+      comments {
+        id
+        timestamp
+        text
+        removed
+        repliesTo
+        replyCount
+        karma
+        userVote
+        user {
+          username
+          displayName
+          avatar
+        }
+        anonId
+        anonTextColor
+        anonTextBackground
+        replies {
+          id
+          timestamp
+          text
+          removed
+          user {
+            username
+            displayName
+            avatar
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+          karma
+          userVote
+        }
+      }
     }
   }
 `;
@@ -108,10 +251,11 @@ interface Comment {
   replyCount: number;
   karma: number;
   userVote: number | null;
-  user: { username: string } | null;
+  user: { username: string; displayName?: string; avatar?: string } | null;
   anonId: string;
   anonTextColor: string;
   anonTextBackground: string;
+  replies?: Comment[];
 }
 
 interface CopeProps {
@@ -136,15 +280,48 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
   });
 
   const { data: meData, refetch: refetchMe } = useQuery(ME_QUERY);
-  const { data, loading, refetch } = useQuery(COMMENTS_QUERY, {
-    variables: { flavor, contentId },
+
+  // Select the appropriate query based on flavor
+  const getCommentsQuery = () => {
+    switch (flavor) {
+      case "file":
+        return COMMENTS_BY_FILE_QUERY;
+      case "album":
+        return COMMENTS_BY_ALBUM_QUERY;
+      case "timeline":
+        return COMMENTS_BY_TIMELINE_QUERY;
+      case "user":
+        return COMMENTS_BY_USER_QUERY;
+      default:
+        return COMMENTS_BY_FILE_QUERY; // fallback
+    }
+  };
+
+  const { data, loading, refetch } = useQuery(getCommentsQuery(), {
+    variables: { contentId },
   });
   const [createComment, { loading: creating }] = useMutation(
     CREATE_COMMENT_MUTATION
   );
   const [vote] = useMutation(VOTE_MUTATION);
 
-  const comments: Comment[] = data?.comments || [];
+  // Extract comments from the appropriate data path
+  const getComments = () => {
+    switch (flavor) {
+      case "file":
+        return data?.file?.comments || [];
+      case "album":
+        return data?.album?.comments || [];
+      case "timeline":
+        return data?.timeline?.comments || [];
+      case "user":
+        return data?.user?.comments || [];
+      default:
+        return [];
+    }
+  };
+
+  const comments: Comment[] = getComments();
 
   const topLevelComments = comments.filter((c) => !c.repliesTo);
   const sortedComments = [...topLevelComments].sort((a, b) => {
@@ -435,52 +612,61 @@ function CommentItem({
     );
   }
 
-  const author = comment.user?.username || `Anon ${comment.anonId}`;
-  const isAnon = !comment.user;
+  const author = comment?.user?.username || "Anon";
+  const isAnon = !comment?.user;
 
   return (
     <Card className="p-4">
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onVote(comment.id, comment.userVote === 1 ? 0 : 1)}
-          >
-            <ArrowUp
-              className={`h-4 w-4 ${
-                comment.userVote === 1 ? "fill-primary text-primary" : ""
-              }`}
-            />
-          </Button>
+          <BouncyClick>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onVote(comment.id, comment.userVote === 1 ? 0 : 1)}
+            >
+              <ArrowUp
+                className={`h-4 w-4 ${
+                  comment.userVote === 1 ? "fill-primary text-primary" : ""
+                }`}
+              />
+            </Button>
+          </BouncyClick>
           <span className="text-sm font-medium">{comment.karma}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onVote(comment.id, comment.userVote === -1 ? 0 : -1)}
-          >
-            <ArrowDown
-              className={`h-4 w-4 ${
-                comment.userVote === -1 ? "fill-primary text-primary" : ""
-              }`}
-            />
-          </Button>
+          <BouncyClick>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                onVote(comment.id, comment.userVote === -1 ? 0 : -1)
+              }
+            >
+              <ArrowDown
+                className={`h-4 w-4 ${
+                  comment.userVote === -1 ? "fill-primary text-primary" : ""
+                }`}
+              />
+            </Button>
+          </BouncyClick>
         </div>
 
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
             {isAnon ? (
-              <div
-                className="px-2 py-1 rounded text-xs font-medium"
-                style={{
-                  color: comment.anonTextColor,
-                  backgroundColor: comment.anonTextBackground,
-                }}
-              >
-                {author}
-              </div>
+              <>
+                {author + " "}
+                <span
+                  className="px-2 py-1 rounded text-xs font-medium"
+                  style={{
+                    color: comment.anonTextColor,
+                    backgroundColor: comment.anonTextBackground,
+                  }}
+                >
+                  {comment.anonId}
+                </span>
+              </>
             ) : (
               <Link
                 href={`/u/${author}`}
@@ -517,24 +703,28 @@ function CommentItem({
 
           {!compact && (
             <div className="flex items-center gap-4 text-sm">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onReply(comment.id)}
-              >
-                <Reply className="h-4 w-4 mr-1" />
-                Reply
-              </Button>
-              {comment.replyCount > 0 && (
+              <BouncyClick>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onShowReplies(comment)}
+                  onClick={() => onReply(comment.id)}
                 >
-                  <MessageSquare className="h-4 w-4 mr-1" />
-                  {comment.replyCount}{" "}
-                  {comment.replyCount === 1 ? "reply" : "replies"}
+                  <Reply className="h-4 w-4 mr-1" />
+                  Reply
                 </Button>
+              </BouncyClick>
+              {comment.replyCount > 0 && (
+                <BouncyClick>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onShowReplies(comment)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    {comment.replyCount}{" "}
+                    {comment.replyCount === 1 ? "reply" : "replies"}
+                  </Button>
+                </BouncyClick>
               )}
             </div>
           )}
