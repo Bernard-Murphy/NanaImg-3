@@ -264,8 +264,8 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
             {...commentForm.register("text")}
             placeholder={
               meData?.me
-                ? "Write a comment (Markdown supported)..."
-                : "Write an anonymous comment (Markdown supported)..."
+                ? "Write a cope (Markdown supported)..."
+                : "Write an anonymous cope (Markdown supported)..."
             }
             disabled={creating}
           />
@@ -323,7 +323,7 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
                     {creating ? (
                       <Spinner size="sm" color="light" />
                     ) : (
-                      "Post Comment"
+                      "Post Cope"
                     )}
                   </Button>
                 </BouncyClick>

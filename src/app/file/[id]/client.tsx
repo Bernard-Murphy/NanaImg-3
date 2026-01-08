@@ -344,7 +344,7 @@ export default function FilePageClient() {
                 <div className="font-medium">{file.mimeType}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Comments</div>
+                <div className="text-xs text-muted-foreground">Cope</div>
                 <div className="font-medium">
                   <Counter count={file.commentCount} />
                 </div>

@@ -63,7 +63,7 @@ export default function InfoPage() {
               <p className="text-sm text-muted-foreground">
                 Do not use this platform for advertising, promotional content,
                 or spam. This includes flooding the server with requests or
-                posting repetitive comments.
+                posting repetitive cope.
               </p>
             </div>
 
@@ -125,7 +125,7 @@ export default function InfoPage() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-1">Comments</h4>
+                <h4 className="font-semibold mb-1">Cope</h4>
                 <ul className="space-y-1 text-muted-foreground">
                   <li>
                     <code>/cope/(comment number)</code>

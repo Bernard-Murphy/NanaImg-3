@@ -197,7 +197,7 @@ function BrowsePageContent() {
                   </BouncyClick>
                   <BouncyClick>
                     <TabsTrigger value="recent-comment">
-                      Recent Comment
+                      Recent Cope
                     </TabsTrigger>
                   </BouncyClick>
                   <BouncyClick>

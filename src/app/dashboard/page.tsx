@@ -379,12 +379,12 @@ function DashboardPageContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Your Comments ({user.comments.length})</CardTitle>
+                <CardTitle>Your Cope ({user.comments.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 {user.comments.length === 0 ? (
                   <p className="text-muted-foreground text-center py-4">
-                    No comments yet
+                    No cope yet
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -395,7 +395,7 @@ function DashboardPageContent() {
                             {formatDate(comment.timestamp)}
                           </span>
                           <span className="text-xs font-medium">
-                            <Counter count={comment.karma} /> karma
+                            <Counter count={comment.karma} /> clout
                           </span>
                         </div>
                         <p className="text-sm line-clamp-2">{comment.text}</p>

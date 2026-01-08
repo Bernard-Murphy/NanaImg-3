@@ -71,8 +71,8 @@ export default function SetPasswordPageClient() {
       return;
     }
 
-    if (password.length < 8) {
-      toast.warning("Password must be at least 8 characters.");
+    if (password.length < 4) {
+      toast.warning("Password must be at least 4 characters.");
       return;
     }
 
@@ -138,7 +138,7 @@ export default function SetPasswordPageClient() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={4}
                 disabled={loading}
               />
             </div>
@@ -151,7 +151,7 @@ export default function SetPasswordPageClient() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={4}
                 disabled={loading}
               />
             </div>

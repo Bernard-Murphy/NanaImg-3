@@ -706,10 +706,10 @@ export const resolvers = {
         };
       }
 
-      if (password.length < 8) {
+      if (password.length < 4) {
         return {
           success: false,
-          message: "Password must be at least 8 characters",
+          message: "Password must be at least 4 characters",
         };
       }
 
@@ -896,10 +896,10 @@ export const resolvers = {
         return { success: false, message: "Reset link has expired" };
       }
 
-      if (password.length < 8) {
+      if (password.length < 4) {
         return {
           success: false,
-          message: "Password must be at least 8 characters",
+          message: "Password must be at least 4 characters",
         };
       }
 
