@@ -8,6 +8,7 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    dangerouslyAllowSVG: true,
   },
   // Disable static generation for all pages since we use client-side GraphQL
   experimental: {

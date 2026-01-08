@@ -2,6 +2,8 @@
 
 A full-featured file sharing platform built with Next.js, TypeScript, PostgreSQL, GraphQL, and Tailwind CSS.
 
+INSTALL GIFSICLE
+
 ## Features
 
 - **File Uploading**: Upload files up to 1.5GB with drag/drop, paste, and multipart upload support

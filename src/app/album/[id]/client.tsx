@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import Image from "next/image";
+import * as NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
