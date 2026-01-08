@@ -76,6 +76,10 @@ export const fade_out_right_minor = {
   x: 300,
 };
 
+export const retract = {
+  height: 0,
+};
+
 export const transition = {
   // x: { duration: 0.33 },
   // y: { duration: 0.33 },
@@ -85,6 +89,8 @@ export const transition = {
   y: { duration: 0.25 },
   opacity: { duration: 0.17 },
   scale: { duration: 0.18 },
+  height: { duration: 0.18 },
+  width: { duration: 0.18 },
 };
 
 export const transition_fast = {
@@ -92,6 +98,8 @@ export const transition_fast = {
   y: { duration: 0.19 },
   opacity: { duration: 0.11 },
   scale: { duration: 0.12 },
+  height: { duration: 0.19 },
+  width: { duration: 0.19 },
 };
 
 export const pageVariants = {

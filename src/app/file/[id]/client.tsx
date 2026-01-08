@@ -228,7 +228,10 @@ export default function FilePageClient() {
           <CardContent className="p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">
+                <h1
+                  style={{ maxWidth: "50vw" }}
+                  className="text-3xl font-bold mb-2 truncate md:whitespace-normal"
+                >
                   {file.name || file.fileName}
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -369,8 +372,8 @@ export default function FilePageClient() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                    <Download className="h-4 w-4 mr-0 md:mr-2" />
+                    <span className="hidden md:inline">Download</span>
                   </a>
                 </Button>
               </BouncyClick>
@@ -378,13 +381,13 @@ export default function FilePageClient() {
               <BouncyClick>
                 <Button variant="outline" onClick={() => copyLink()}>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Link
+                  Link
                 </Button>
               </BouncyClick>
               <BouncyClick>
                 <Button variant="outline" onClick={() => copyLink(true)}>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy BBCode
+                  BBCode
                 </Button>
               </BouncyClick>
             </div>

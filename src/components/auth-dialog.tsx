@@ -48,9 +48,7 @@ const registerSchema = z
       ),
     displayName: z.string().min(1, "Display name is required"),
     email: z.string().email("Please enter a valid email address"),
-    password: z
-      .string()
-      .min(4, "Password must be at least 4 characters"),
+    password: z.string().min(4, "Password must be at least 4 characters"),
     confirmPassword: z.string(),
     bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
     avatarFileId: z.string().optional(),
@@ -127,15 +125,25 @@ interface AuthDialogProps {
   children?: React.ReactNode;
   defaultTab?: "login" | "register" | "forgot";
   onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onCancel?: () => void;
 }
 
 function AuthDialogContent({
   children,
   defaultTab = "login",
   onSuccess,
+  open: externalOpen,
+  onOpenChange,
+  onCancel,
 }: AuthDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Use external open state if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
   // Form hooks
   const loginForm = useForm<LoginForm>({
@@ -339,18 +347,23 @@ function AuthDialogContent({
         setOpen(newOpen);
         if (!newOpen) {
           resetForms();
+          // If externally controlled and closing without success, call onCancel
+          if (externalOpen !== undefined && onCancel) {
+            onCancel();
+          }
         }
       }}
     >
       <DialogTrigger asChild>
-        {children || (
+        {/* {children || (
           <BouncyClick>
             <Button>
-              <LogIn className="h-4 w-4 mr-2" />
+              <LogIn className="h-4 w-4 mr-2 TEST" />
               Login/Register
             </Button>
           </BouncyClick>
-        )}
+        )} */}
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -678,9 +691,22 @@ function AuthDialogContent({
   );
 }
 
-export function AuthDialog({ children, defaultTab = "login", onSuccess }: AuthDialogProps) {
+export function AuthDialog({
+  children,
+  defaultTab = "login",
+  onSuccess,
+  open,
+  onOpenChange,
+  onCancel,
+}: AuthDialogProps) {
   return (
-    <AuthDialogContent defaultTab={defaultTab} onSuccess={onSuccess}>
+    <AuthDialogContent
+      defaultTab={defaultTab}
+      onSuccess={onSuccess}
+      open={open}
+      onOpenChange={onOpenChange}
+      onCancel={onCancel}
+    >
       {children}
     </AuthDialogContent>
   );
