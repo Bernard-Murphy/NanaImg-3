@@ -16,23 +16,27 @@
  * node scripts/unlist.js --ids 1,2,3
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient({
-  log: ['error'],
+  log: ["error"],
 });
 
 /**
  * Unlist content by setting removed = true for files, albums, and timelines
  * @param {number[]} ids - Array of content IDs to unlist
  */
-async function unlistContent(ids = []) {
+async function unlistContent(ids) {
+  ids = [28999, 28998, 28997, 28996, 28995, 28994, 28993, 28991];
+  console.log(ids, "ids");
   if (ids.length === 0) {
-    console.log('No IDs provided. Use --ids 1,2,3 or modify the ids array in the script.');
+    console.log(
+      "No IDs provided. Use --ids 1,2,3 or modify the ids array in the script."
+    );
     return;
   }
 
-  console.log(`Unlisting ${ids.length} items with IDs: ${ids.join(', ')}`);
+  console.log(`Unlisting ${ids.length} items with IDs: ${ids.join(", ")}`);
 
   try {
     // Update files
@@ -68,16 +72,16 @@ async function unlistContent(ids = []) {
       },
     });
 
-    console.log('Update results:');
+    console.log("Update results:");
     console.log(`- Files unlisted: ${filesUpdated.count}`);
     console.log(`- Albums unlisted: ${albumsUpdated.count}`);
     console.log(`- Timelines unlisted: ${timelinesUpdated.count}`);
 
-    const totalUpdated = filesUpdated.count + albumsUpdated.count + timelinesUpdated.count;
+    const totalUpdated =
+      filesUpdated.count + albumsUpdated.count + timelinesUpdated.count;
     console.log(`Total items unlisted: ${totalUpdated}`);
-
   } catch (error) {
-    console.error('Error unlisting content:', error);
+    console.error("Error unlisting content:", error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -90,9 +94,9 @@ function parseArgs() {
   const ids = [];
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--ids' && args[i + 1]) {
+    if (args[i] === "--ids" && args[i + 1]) {
       const idsString = args[i + 1];
-      const parsedIds = idsString.split(',').map(id => {
+      const parsedIds = idsString.split(",").map((id) => {
         const num = parseInt(id.trim());
         if (isNaN(num)) {
           console.error(`Invalid ID: ${id}`);
@@ -115,8 +119,8 @@ if (require.main === module) {
   // If no IDs provided via command line, you can add them here
   // const ids = [1, 2, 3, 4, 5]; // Example IDs to unlist
 
-  unlistContent(ids).catch(error => {
-    console.error('Unhandled error:', error);
+  unlistContent(ids).catch((error) => {
+    console.error("Unhandled error:", error);
     process.exit(1);
   });
 }

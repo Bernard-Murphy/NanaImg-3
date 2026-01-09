@@ -14,6 +14,8 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const AWS = require("aws-sdk");
+const dotenv = require("dotenv");
+dotenv.config();
 
 // Configure AWS S3 (using same config as the app)
 AWS.config.update({
@@ -37,7 +39,7 @@ if (!dbUrl) {
   console.error("DATABASE_URL environment variable is required");
   process.exit(1);
 }
-
+console.log(dbUrl, "dbUrl");
 // Parse database URL
 const dbUrlMatch = dbUrl.match(
   /postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/
