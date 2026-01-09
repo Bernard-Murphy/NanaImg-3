@@ -12,7 +12,7 @@ const nextConfig = {
   },
   // Disable static generation for all pages since we use client-side GraphQL
   experimental: {
-    serverComponentsExternalPackages: ['@apollo/client'],
+    serverComponentsExternalPackages: ['@apollo/client', '@prisma/client', '.prisma'],
   },
   // Disable static optimization
   staticPageGenerationTimeout: 0,
@@ -24,7 +24,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Configure webpack for SSE
+  // Configure webpack for SSE and Prisma
   webpack: (config, { dev }) => {
     if (dev) {
       config.externals.push({
@@ -32,6 +32,14 @@ const nextConfig = {
         'bufferutil': 'bufferutil',
       });
     }
+
+    // Handle Prisma client in production builds
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+    };
+
     return config;
   },
 }

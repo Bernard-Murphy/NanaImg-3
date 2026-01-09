@@ -71,9 +71,9 @@ model Album {
   manifesto          String   @default("")
   user               User?    @relation(fields: [userId], references: [id])
   files              File[]
-  modLogs            ModLog[] @relation("FileModLogs")
-  reports            Report[] @relation("FileReports")
-  votes              Vote[]   @relation("FileVotes")
+  modLogs            ModLog[] @relation("AlbumModLogs")
+  reports            Report[] @relation("AlbumReports")
+  votes              Vote[]   @relation("AlbumVotes")
 
   @@map("albums")
 }
@@ -89,11 +89,11 @@ model Timeline {
   views              Int            @default(0)
   removed            Boolean        @default(false)
   manifesto          String         @default("")
-  modLogs            ModLog[]       @relation("FileModLogs")
-  reports            Report[]       @relation("FileReports")
+  modLogs            ModLog[]       @relation("TimelineModLogs")
+  reports            Report[]       @relation("TimelineReports")
   items              TimelineItem[]
   user               User?          @relation(fields: [userId], references: [id])
-  votes              Vote[]         @relation("FileVotes")
+  votes              Vote[]         @relation("TimelineVotes")
 
   @@map("timelines")
 }
@@ -124,9 +124,9 @@ model Comment {
   replyToComment     Comment?  @relation("CommentReplies", fields: [repliesTo], references: [id])
   replies            Comment[] @relation("CommentReplies")
   user               User?     @relation(fields: [userId], references: [id])
-  modLogs            ModLog[]  @relation("FileModLogs")
-  reports            Report[]  @relation("FileReports")
-  votes              Vote[]    @relation("FileVotes")
+  modLogs            ModLog[]  @relation("CommentModLogs")
+  reports            Report[]  @relation("CommentReports")
+  votes              Vote[]    @relation("CommentVotes")
 
   @@map("comments")
 }
@@ -138,10 +138,10 @@ model Vote {
   userId    Int
   contentId Int
   timestamp DateTime @default(now())
-  file      Album    @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
-  file      Comment  @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  album     Album    @relation("AlbumVotes", fields: [contentId], references: [id], map: "album_votes_fk")
+  comment   Comment  @relation("CommentVotes", fields: [contentId], references: [id], map: "comment_votes_fk")
   file      File     @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
-  file      Timeline @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  timeline  Timeline @relation("TimelineVotes", fields: [contentId], references: [id], map: "timeline_votes_fk")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, flavor, contentId])
@@ -157,11 +157,11 @@ model Report {
   anonId    String
   dismissed Boolean  @default(false)
   reason    String   @default("")
-  file      Album    @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
-  file      Comment  @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
+  album     Album    @relation("AlbumReports", fields: [contentId], references: [id], map: "album_reports_fk")
+  comment   Comment  @relation("CommentReports", fields: [contentId], references: [id], map: "comment_reports_fk")
   file      File     @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
   user      User?    @relation(fields: [userId], references: [id])
-  file      Timeline @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
+  timeline  Timeline @relation("TimelineReports", fields: [contentId], references: [id], map: "timeline_reports_fk")
 
   @@map("reports")
 }
@@ -174,11 +174,11 @@ model ModLog {
   contentFlavor String
   contentId     Int
   details       String   @default("")
-  file          Album    @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
-  file          Comment  @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
+  album         Album    @relation("AlbumModLogs", fields: [contentId], references: [id], map: "album_modlogs_fk")
+  comment       Comment  @relation("CommentModLogs", fields: [contentId], references: [id], map: "comment_modlogs_fk")
   file          File     @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  file          Timeline @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
+  timeline      Timeline @relation("TimelineModLogs", fields: [contentId], references: [id], map: "timeline_modlogs_fk")
 
   @@map("mod_logs")
 }

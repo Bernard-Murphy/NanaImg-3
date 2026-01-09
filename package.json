@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "ESLINT_NO_DEV_ERRORS=true next build",
-    "build:skip-lint": "ESLINT_NO_DEV_ERRORS=true next build --no-lint",
+    "build": "prisma generate && ESLINT_NO_DEV_ERRORS=true next build",
+    "build:skip-lint": "prisma generate && ESLINT_NO_DEV_ERRORS=true next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
