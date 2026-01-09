@@ -434,7 +434,9 @@ export const resolvers = {
             distinct: ["contentId"],
           });
 
-          const commentFileIds = commentMatchedFileIds.map((c) => c.contentId);
+          const commentFileIds = commentMatchedFileIds.map(
+            (c: { contentId: number }) => c.contentId
+          );
 
           if (commentFileIds.length > 0) {
             const commentMatchedFiles = await prisma.file.findMany({
@@ -520,7 +522,7 @@ export const resolvers = {
           });
 
           const commentAlbumIds = commentMatchedAlbumIds.map(
-            (c) => c.contentId
+            (c: { contentId: number }) => c.contentId
           );
 
           if (commentAlbumIds.length > 0) {
@@ -614,7 +616,7 @@ export const resolvers = {
           });
 
           const commentTimelineIds = commentMatchedTimelineIds.map(
-            (c) => c.contentId
+            (c: { contentId: number }) => c.contentId
           );
 
           if (commentTimelineIds.length > 0) {
