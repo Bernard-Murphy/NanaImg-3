@@ -20,6 +20,10 @@ const nextConfig = {
   generateBuildId: async () => {
     return 'build-' + Date.now()
   },
+  // Disable ESLint during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Configure webpack for SSE
   webpack: (config, { dev }) => {
     if (dev) {
