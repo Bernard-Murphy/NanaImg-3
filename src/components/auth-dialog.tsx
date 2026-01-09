@@ -85,6 +85,7 @@ const LOGIN_MUTATION = gql`
         id
         username
       }
+      token
     }
   }
 `;
@@ -98,6 +99,7 @@ const REGISTER_MUTATION = gql`
         id
         username
       }
+      token
     }
   }
 `;

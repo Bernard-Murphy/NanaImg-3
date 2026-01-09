@@ -39,6 +39,7 @@ const RESET_PASSWORD = gql`
         id
         username
       }
+      token
     }
   }
 `;
@@ -105,7 +106,9 @@ export default function SetPasswordPageClient() {
         // Store JWT token in localStorage and cookie
         if (data.resetPassword.token) {
           localStorage.setItem("auth-token", data.resetPassword.token);
-          document.cookie = `auth-token=${data.resetPassword.token}; path=/; max-age=2592000; samesite=lax${
+          document.cookie = `auth-token=${
+            data.resetPassword.token
+          }; path=/; max-age=2592000; samesite=lax${
             process.env.NODE_ENV === "production" ? "; secure" : ""
           }`;
         }
