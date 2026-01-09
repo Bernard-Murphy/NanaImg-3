@@ -37,7 +37,7 @@ async function getKarma(flavor: string, contentId: number): Promise<number> {
   const votes = await prisma.vote.findMany({
     where: { flavor, contentId },
   });
-  return votes.reduce((sum, vote) => sum + vote.vote, 0);
+  return votes.reduce<number>((sum, vote) => sum + vote.vote, 0);
 }
 
 // Helper function to get user's vote
