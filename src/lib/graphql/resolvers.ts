@@ -12,7 +12,7 @@ import {
   downloadFile,
 } from "../s3";
 import { generateThumbnail } from "../thumbnail";
-import { generateAnonId, generateRandomColor } from "../session";
+import { generateAnonId, generateRandomColor, signJWT } from "../session";
 
 const pubsub = new PubSub();
 
@@ -23,9 +23,13 @@ const ALBUM_UPDATED = "ALBUM_UPDATED";
 const COMMENTS_UPDATED = "COMMENTS_UPDATED";
 
 interface Context {
-  session: any;
+  user: any; // JWT payload with userId if authenticated
+  anonData: {
+    anonId: string;
+    anonTextColor: string;
+    anonTextBackground: string;
+  };
   req: any;
-  res: any;
 }
 
 // Helper function to get karma for content
@@ -105,7 +109,7 @@ export const resolvers = {
   User: {
     email: (parent: any, _: any, context: Context) => {
       // Only return email for the logged-in user
-      if (context.session.userId === parent.id) {
+      if (context.user?.userId === parent.id) {
         return parent.email;
       }
       return null;
@@ -187,7 +191,7 @@ export const resolvers = {
       return getKarma("file", parent.id);
     },
     userVote: async (parent: any, _: any, context: Context) => {
-      return getUserVote(context.session.userId, "file", parent.id);
+      return getUserVote(context.user?.userId || null, "file", parent.id);
     },
   },
 
@@ -217,7 +221,7 @@ export const resolvers = {
       return getKarma("album", parent.id);
     },
     userVote: async (parent: any, _: any, context: Context) => {
-      return getUserVote(context.session.userId, "album", parent.id);
+      return getUserVote(context.user?.userId || null, "album", parent.id);
     },
   },
 
@@ -247,7 +251,7 @@ export const resolvers = {
       return getKarma("timeline", parent.id);
     },
     userVote: async (parent: any, _: any, context: Context) => {
-      return getUserVote(context.session.userId, "timeline", parent.id);
+      return getUserVote(context.user?.userId || null, "timeline", parent.id);
     },
   },
 
@@ -275,7 +279,7 @@ export const resolvers = {
       return getKarma("comment", parent.id);
     },
     userVote: async (parent: any, _: any, context: Context) => {
-      return getUserVote(context.session.userId, "comment", parent.id);
+      return getUserVote(context.user?.userId || null, "comment", parent.id);
     },
   },
 
@@ -294,9 +298,9 @@ export const resolvers = {
 
   Query: {
     me: async (_: any, __: any, context: Context) => {
-      if (!context.session.userId) return null;
+      if (!context.user?.userId) return null;
       return prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user.userId },
       });
     },
 
@@ -364,43 +368,333 @@ export const resolvers = {
       const search = args.search || "";
 
       let orderBy: any = { timestamp: "desc" };
+      let useCommentSorting = false;
+
       if (sort === "recent-comment") {
-        // This would need a more complex query in production
-        orderBy = { timestamp: "desc" };
+        // We'll handle this with custom sorting after fetching
+        useCommentSorting = true;
+        orderBy = { timestamp: "desc" }; // Fallback ordering
       }
+
+      // For comment sorting, we need to fetch items with their latest comments
+      // and sort them after fetching, since we can't do this efficiently in a single query
 
       const where: any = { removed: false };
 
       let items: any[] = [];
       let total = 0;
 
-      // TODO: Implement proper search functionality
-      // For now, search is disabled to avoid TypeScript errors
+      // Implement search functionality
       if (search) {
+        // Search through files, albums, and timelines
+        const searchResults: any[] = [];
+
+        // Search files by name and comments
+        if (filter === "all" || filter === "files") {
+          // First, find files that match name/fileName/manifesto/users
+          const nameMatchedFiles = await prisma.file.findMany({
+            where: {
+              ...where,
+              albumId: null,
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { fileName: { contains: search, mode: "insensitive" } },
+                { manifesto: { contains: search, mode: "insensitive" } },
+                {
+                  user: {
+                    OR: [
+                      { username: { contains: search, mode: "insensitive" } },
+                      {
+                        displayName: { contains: search, mode: "insensitive" },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            orderBy,
+            include: {
+              user: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          });
+
+          // Then, find files that have comments containing the search term
+          const commentMatchedFileIds = await prisma.comment.findMany({
+            where: {
+              flavor: "file",
+              text: { contains: search, mode: "insensitive" },
+              removed: false,
+            },
+            select: { contentId: true },
+            distinct: ["contentId"],
+          });
+
+          const commentFileIds = commentMatchedFileIds.map((c) => c.contentId);
+
+          if (commentFileIds.length > 0) {
+            const commentMatchedFiles = await prisma.file.findMany({
+              where: {
+                ...where,
+                albumId: null,
+                id: { in: commentFileIds },
+              },
+              orderBy,
+            });
+
+            // Combine and deduplicate
+            const allFileIds = new Set([
+              ...nameMatchedFiles.map((f) => f.id),
+              ...commentMatchedFiles.map((f) => f.id),
+            ]);
+            const combinedFiles = [
+              ...nameMatchedFiles,
+              ...commentMatchedFiles.filter((f) => !allFileIds.has(f.id)),
+            ];
+
+            searchResults.push(
+              ...combinedFiles.map((file) => ({ ...file, __typename: "File" }))
+            );
+          } else {
+            searchResults.push(
+              ...nameMatchedFiles.map((file) => ({
+                ...file,
+                __typename: "File",
+              }))
+            );
+          }
+        }
+
+        // Search albums by name and comments
+        if (filter === "all" || filter === "albums") {
+          // First, find albums that match name/manifesto/users
+          const nameMatchedAlbums = await prisma.album.findMany({
+            where: {
+              ...where,
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { manifesto: { contains: search, mode: "insensitive" } },
+                {
+                  user: {
+                    OR: [
+                      { username: { contains: search, mode: "insensitive" } },
+                      {
+                        displayName: { contains: search, mode: "insensitive" },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            orderBy,
+            include: {
+              files: {
+                select: {
+                  thumbnailUrl: true,
+                  mimeType: true,
+                },
+                take: 1,
+              },
+              user: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          });
+
+          // Then, find albums that have comments containing the search term
+          const commentMatchedAlbumIds = await prisma.comment.findMany({
+            where: {
+              flavor: "album",
+              text: { contains: search, mode: "insensitive" },
+              removed: false,
+            },
+            select: { contentId: true },
+            distinct: ["contentId"],
+          });
+
+          const commentAlbumIds = commentMatchedAlbumIds.map(
+            (c) => c.contentId
+          );
+
+          if (commentAlbumIds.length > 0) {
+            const commentMatchedAlbums = await prisma.album.findMany({
+              where: {
+                ...where,
+                id: { in: commentAlbumIds },
+              },
+              orderBy,
+              include: {
+                files: {
+                  select: {
+                    thumbnailUrl: true,
+                    mimeType: true,
+                  },
+                  take: 1,
+                },
+              },
+            });
+
+            // Combine and deduplicate
+            const allAlbumIds = new Set([
+              ...nameMatchedAlbums.map((a) => a.id),
+              ...commentMatchedAlbums.map((a) => a.id),
+            ]);
+            const combinedAlbums = [
+              ...nameMatchedAlbums,
+              ...commentMatchedAlbums.filter((a) => !allAlbumIds.has(a.id)),
+            ];
+
+            searchResults.push(
+              ...combinedAlbums.map((album) => ({
+                ...album,
+                __typename: "Album",
+              }))
+            );
+          } else {
+            searchResults.push(
+              ...nameMatchedAlbums.map((album) => ({
+                ...album,
+                __typename: "Album",
+              }))
+            );
+          }
+        }
+
+        // Search timelines by name and comments
+        if (filter === "all" || filter === "timelines") {
+          // First, find timelines that match name/manifesto/users
+          const nameMatchedTimelines = await prisma.timeline.findMany({
+            where: {
+              ...where,
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { manifesto: { contains: search, mode: "insensitive" } },
+                {
+                  user: {
+                    OR: [
+                      { username: { contains: search, mode: "insensitive" } },
+                      {
+                        displayName: { contains: search, mode: "insensitive" },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            orderBy,
+            include: {
+              items: {
+                take: 1,
+              },
+              user: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          });
+
+          // Then, find timelines that have comments containing the search term
+          const commentMatchedTimelineIds = await prisma.comment.findMany({
+            where: {
+              flavor: "timeline",
+              text: { contains: search, mode: "insensitive" },
+              removed: false,
+            },
+            select: { contentId: true },
+            distinct: ["contentId"],
+          });
+
+          const commentTimelineIds = commentMatchedTimelineIds.map(
+            (c) => c.contentId
+          );
+
+          if (commentTimelineIds.length > 0) {
+            const commentMatchedTimelines = await prisma.timeline.findMany({
+              where: {
+                ...where,
+                id: { in: commentTimelineIds },
+              },
+              orderBy,
+              include: {
+                items: {
+                  take: 1,
+                },
+              },
+            });
+
+            // Combine and deduplicate
+            const allTimelineIds = new Set([
+              ...nameMatchedTimelines.map((t) => t.id),
+              ...commentMatchedTimelines.map((t) => t.id),
+            ]);
+            const combinedTimelines = [
+              ...nameMatchedTimelines,
+              ...commentMatchedTimelines.filter(
+                (t) => !allTimelineIds.has(t.id)
+              ),
+            ];
+
+            searchResults.push(
+              ...combinedTimelines.map((timeline) => ({
+                ...timeline,
+                __typename: "Timeline",
+              }))
+            );
+          } else {
+            searchResults.push(
+              ...nameMatchedTimelines.map((timeline) => ({
+                ...timeline,
+                __typename: "Timeline",
+              }))
+            );
+          }
+        }
+
+        // Sort by timestamp and apply pagination
+        searchResults.sort(
+          (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        );
+        const paginatedResults = searchResults.slice(skip, skip + limit);
+
         return {
-          items: [],
-          total: 0,
-          hasMore: false,
+          items: paginatedResults,
+          total: searchResults.length,
+          hasMore: skip + limit < searchResults.length,
         };
       }
 
       if (filter === "all" || filter === "files") {
+        // For "all" filter, fetch more items to ensure proper pagination after sorting
+        const fetchLimit =
+          filter === "files" ? limit : Math.max(limit * 3, 100);
         const files = await prisma.file.findMany({
           where: { ...where, albumId: null },
-          orderBy,
+          orderBy: useCommentSorting ? undefined : orderBy,
           skip: filter === "files" ? skip : 0,
-          take: filter === "files" ? limit : limit,
+          take: filter === "files" ? limit : fetchLimit,
         });
         // Add __typename for GraphQL union resolution
         items.push(...files.map((file) => ({ ...file, __typename: "File" })));
       }
 
       if (filter === "all" || filter === "albums") {
+        // For "all" filter, fetch more items to ensure proper pagination after sorting
+        const fetchLimit =
+          filter === "albums" ? limit : Math.max(limit * 3, 100);
         const albums = await prisma.album.findMany({
           where,
-          orderBy,
+          orderBy: useCommentSorting ? undefined : orderBy,
           skip: filter === "albums" ? skip : 0,
-          take: filter === "albums" ? limit : limit,
+          take: filter === "albums" ? limit : fetchLimit,
           include: {
             files: {
               select: {
@@ -418,11 +712,14 @@ export const resolvers = {
       }
 
       if (filter === "all" || filter === "timelines") {
+        // For "all" filter, fetch more items to ensure proper pagination after sorting
+        const fetchLimit =
+          filter === "timelines" ? limit : Math.max(limit * 3, 100);
         const timelines = await prisma.timeline.findMany({
           where,
-          orderBy,
+          orderBy: useCommentSorting ? undefined : orderBy,
           skip: filter === "timelines" ? skip : 0,
-          take: filter === "timelines" ? limit : limit,
+          take: filter === "timelines" ? limit : fetchLimit,
           include: {
             items: {
               take: 1, // Just to ensure items field exists
@@ -438,17 +735,156 @@ export const resolvers = {
         );
       }
 
-      // Sort combined items
-      items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-      items = items.slice(0, limit);
+      // For comment sorting, get items based on comments that match search/filter criteria
+      if (useCommentSorting) {
+        // Build where clause for comments based on search and filter
+        const commentWhere: any = { removed: false };
 
-      total = items.length;
+        // Add search criteria to comments
+        if (search) {
+          commentWhere.text = { contains: search, mode: "insensitive" };
+        }
 
-      return {
-        items,
-        total,
-        hasMore: total >= limit,
-      };
+        // Add filter criteria to comments
+        if (filter === "files") {
+          commentWhere.flavor = "file";
+        } else if (filter === "albums") {
+          commentWhere.flavor = "album";
+        } else if (filter === "timelines") {
+          commentWhere.flavor = "timeline";
+        }
+        // For "all" filter, include all comment flavors
+
+        // Get comments sorted by timestamp descending, limited to get recent activity
+        const recentComments = await prisma.comment.findMany({
+          where: commentWhere,
+          select: {
+            contentId: true,
+            flavor: true,
+            timestamp: true,
+          },
+          orderBy: { timestamp: "desc" },
+          take: 1000, // Limit to avoid excessive data, adjust as needed
+        });
+
+        // Group comments by content to get unique items with their latest comment
+        const itemCommentMap = new Map();
+
+        for (const comment of recentComments) {
+          const key = `${comment.flavor}-${comment.contentId}`;
+          if (!itemCommentMap.has(key)) {
+            itemCommentMap.set(key, {
+              contentId: comment.contentId,
+              flavor: comment.flavor,
+              latestCommentTime: comment.timestamp,
+            });
+          }
+        }
+
+        // Get the unique items from the comments
+        const commentedItems = [];
+        const fileIds = [];
+        const albumIds = [];
+        const timelineIds = [];
+
+        for (const item of Array.from(itemCommentMap.values())) {
+          if (item.flavor === "file") {
+            fileIds.push(item.contentId);
+          } else if (item.flavor === "album") {
+            albumIds.push(item.contentId);
+          } else if (item.flavor === "timeline") {
+            timelineIds.push(item.contentId);
+          }
+        }
+
+        // Fetch the actual items
+        if (fileIds.length > 0) {
+          const files = await prisma.file.findMany({
+            where: {
+              ...where,
+              albumId: null,
+              id: { in: fileIds },
+            },
+          });
+          commentedItems.push(
+            ...files.map((file) => ({ ...file, __typename: "File" }))
+          );
+        }
+
+        if (albumIds.length > 0) {
+          const albums = await prisma.album.findMany({
+            where: {
+              ...where,
+              id: { in: albumIds },
+            },
+            include: {
+              files: {
+                select: {
+                  thumbnailUrl: true,
+                  mimeType: true,
+                },
+                take: 1,
+              },
+            },
+          });
+          commentedItems.push(
+            ...albums.map((album) => ({ ...album, __typename: "Album" }))
+          );
+        }
+
+        if (timelineIds.length > 0) {
+          const timelines = await prisma.timeline.findMany({
+            where: {
+              ...where,
+              id: { in: timelineIds },
+            },
+            include: {
+              items: {
+                take: 1,
+              },
+            },
+          });
+          commentedItems.push(
+            ...timelines.map((timeline) => ({
+              ...timeline,
+              __typename: "Timeline",
+            }))
+          );
+        }
+
+        // Sort items by their latest comment timestamp
+        commentedItems.sort((a, b) => {
+          const aKey = `${a.__typename.toLowerCase()}-${a.id}`;
+          const bKey = `${b.__typename.toLowerCase()}-${b.id}`;
+          const aCommentTime =
+            itemCommentMap.get(aKey)?.latestCommentTime?.getTime() || 0;
+          const bCommentTime =
+            itemCommentMap.get(bKey)?.latestCommentTime?.getTime() || 0;
+          return bCommentTime - aCommentTime;
+        });
+
+        // Apply pagination to commented items
+        const paginatedItems = commentedItems.slice(skip, skip + limit);
+        const total = commentedItems.length;
+
+        return {
+          items: paginatedItems,
+          total,
+          hasMore: skip + limit < total,
+        };
+      } else {
+        items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+        // Apply pagination after sorting
+        const paginatedItems = items.slice(skip, skip + limit);
+        total = items.length;
+
+        return {
+          items: paginatedItems,
+          total,
+          hasMore: skip + limit < total,
+        };
+      }
     },
 
     search: async (_: any, args: any) => {
@@ -509,6 +945,17 @@ export const resolvers = {
     },
 
     gnaaSearch: async (_: any, args: any) => {
+      // Verify reCAPTCHA
+      if (isRecaptchaRequired()) {
+        if (!args.recaptchaToken) {
+          throw new Error("reCAPTCHA validation failed");
+        }
+        const isValid = await verifyRecaptcha(args.recaptchaToken);
+        if (!isValid) {
+          throw new Error("reCAPTCHA validation failed");
+        }
+      }
+
       const query = args.query || "";
       const authors = args.authors || [];
       const page = args.page || 1;
@@ -549,7 +996,7 @@ export const resolvers = {
 
     reports: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -570,7 +1017,7 @@ export const resolvers = {
 
     modLogs: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isAdmin(user.role)) {
@@ -590,7 +1037,7 @@ export const resolvers = {
 
     users: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -715,10 +1162,13 @@ export const resolvers = {
         };
       }
 
-      // Check if username or email already exists
+      // Check if username or email already exists (case insensitive)
       const existingUser = await prisma.user.findFirst({
         where: {
-          OR: [{ username }, { email }],
+          OR: [
+            { username: { equals: username, mode: "insensitive" } },
+            { email: { equals: email, mode: "insensitive" } },
+          ],
         },
       });
 
@@ -749,10 +1199,10 @@ export const resolvers = {
         },
       });
 
-      // Set session
-      context.session.userId = user.id;
+      // Generate JWT token
+      const token = signJWT({ userId: user.id });
 
-      return { success: true, user };
+      return { success: true, user, token };
     },
 
     login: async (_: any, args: any, context: Context) => {
@@ -769,7 +1219,9 @@ export const resolvers = {
 
       const { username, password } = args;
 
-      const user = await prisma.user.findUnique({ where: { username } });
+      const user = await prisma.user.findFirst({
+        where: { username: { equals: username, mode: "insensitive" } },
+      });
 
       if (!user) {
         return { success: false, message: "Invalid username or password" };
@@ -785,19 +1237,19 @@ export const resolvers = {
         return { success: false, message: "Invalid username or password" };
       }
 
-      // Set session
-      context.session.userId = user.id;
+      // Generate JWT token
+      const token = signJWT({ userId: user.id });
 
-      return { success: true, user };
+      return { success: true, user, token };
     },
 
     logout: async (_: any, __: any, context: Context) => {
-      context.session.userId = null;
+      // JWT logout is handled client-side by clearing the cookie
       return true;
     },
 
     updateProfile: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
@@ -808,7 +1260,7 @@ export const resolvers = {
       if (args.defaultTheme) updates.defaultTheme = args.defaultTheme;
 
       return prisma.user.update({
-        where: { id: context.session.userId },
+        where: { id: context.user.userId },
         data: updates,
       });
     },
@@ -828,7 +1280,10 @@ export const resolvers = {
       const { email, username } = args;
 
       const user = await prisma.user.findFirst({
-        where: { email, username },
+        where: {
+          email: { equals: email, mode: "insensitive" },
+          username: { equals: username, mode: "insensitive" },
+        },
       });
 
       if (!user) {
@@ -919,10 +1374,10 @@ export const resolvers = {
         data: { valid: false },
       });
 
-      // Log user in
-      context.session.userId = user.id;
+      // Generate JWT token
+      const token = signJWT({ userId: user.id });
 
-      return { success: true, user };
+      return { success: true, user, token };
     },
 
     initiateUpload: async (_: any, args: any) => {
@@ -977,9 +1432,8 @@ export const resolvers = {
 
       const defaultName = name;
 
-      const userId = anonymous ? null : context.session.userId;
-      const { anonId, anonTextColor, anonTextBackground } =
-        ensureAnonProperties(context.session);
+      const userId = anonymous ? null : context.user?.userId || null;
+      const { anonId, anonTextColor, anonTextBackground } = context.anonData;
 
       let album = null;
 
@@ -1136,9 +1590,8 @@ export const resolvers = {
         }
       }
 
-      const userId = context.session.userId || null;
-      const { anonId, anonTextColor, anonTextBackground } =
-        ensureAnonProperties(context.session);
+      const userId = context.user?.userId || null;
+      const { anonId, anonTextColor, anonTextBackground } = context.anonData;
 
       // Create comment within a transaction to ensure atomicity
       const comment = await prisma.$transaction(async (tx) => {
@@ -1200,7 +1653,7 @@ export const resolvers = {
     },
 
     deleteComment: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
@@ -1213,12 +1666,12 @@ export const resolvers = {
       }
 
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       // User can delete their own comment, or mods can delete any comment
       if (
-        comment.userId !== context.session.userId &&
+        comment.userId !== context.user?.userId &&
         !isModOrAdmin(user!.role)
       ) {
         throw new Error("Unauthorized");
@@ -1233,7 +1686,7 @@ export const resolvers = {
     },
 
     vote: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Must be logged in to vote");
       }
 
@@ -1246,7 +1699,7 @@ export const resolvers = {
       // Check if vote already exists
       const existingVote = await prisma.vote.findFirst({
         where: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor,
           contentId,
         },
@@ -1267,7 +1720,7 @@ export const resolvers = {
         // Create new vote
         await prisma.vote.create({
           data: {
-            userId: context.session.userId,
+            userId: context.user?.userId || null,
             flavor,
             contentId,
             vote,
@@ -1291,8 +1744,8 @@ export const resolvers = {
 
     createReport: async (_: any, args: any, context: Context) => {
       const { flavor, contentId, reason } = args;
-      const userId = context.session.userId || null;
-      const { anonId } = ensureAnonProperties(context.session);
+      const userId = context.user?.userId || null;
+      const { anonId } = context.anonData;
 
       await prisma.report.create({
         data: {
@@ -1309,7 +1762,7 @@ export const resolvers = {
 
     dismissReport: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -1334,7 +1787,7 @@ export const resolvers = {
       // Log action
       await prisma.modLog.create({
         data: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor: "dismissed",
           contentFlavor: report.flavor,
           contentId: report.contentId,
@@ -1346,7 +1799,7 @@ export const resolvers = {
 
     deleteContent: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -1380,7 +1833,7 @@ export const resolvers = {
       // Log action
       await prisma.modLog.create({
         data: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor: "removed",
           contentFlavor: flavor,
           contentId,
@@ -1392,7 +1845,7 @@ export const resolvers = {
 
     restoreContent: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -1426,7 +1879,7 @@ export const resolvers = {
       // Log action
       await prisma.modLog.create({
         data: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor: "restored",
           contentFlavor: flavor,
           contentId,
@@ -1438,7 +1891,7 @@ export const resolvers = {
 
     banUser: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -1453,7 +1906,7 @@ export const resolvers = {
       // Log action
       await prisma.modLog.create({
         data: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor: "banned",
           contentFlavor: "user",
           contentId: args.userId,
@@ -1465,7 +1918,7 @@ export const resolvers = {
 
     unbanUser: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isModOrAdmin(user.role)) {
@@ -1482,7 +1935,7 @@ export const resolvers = {
 
     changeUserRole: async (_: any, args: any, context: Context) => {
       const user = await prisma.user.findUnique({
-        where: { id: context.session.userId },
+        where: { id: context.user?.userId },
       });
 
       if (!user || !isAdmin(user.role)) {
@@ -1512,7 +1965,7 @@ export const resolvers = {
 
       await prisma.modLog.create({
         data: {
-          userId: context.session.userId,
+          userId: context.user?.userId || null,
           flavor,
           contentFlavor: "user",
           contentId: args.userId,
@@ -1523,13 +1976,13 @@ export const resolvers = {
     },
 
     updateFile: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
       const file = await prisma.file.findUnique({ where: { id: args.id } });
 
-      if (!file || file.userId !== context.session.userId) {
+      if (!file || file.userId !== context.user?.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -1544,13 +1997,13 @@ export const resolvers = {
     },
 
     updateAlbum: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
       const album = await prisma.album.findUnique({ where: { id: args.id } });
 
-      if (!album || album.userId !== context.session.userId) {
+      if (!album || album.userId !== context.user?.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -1565,13 +2018,13 @@ export const resolvers = {
     },
 
     deleteFile: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
       const file = await prisma.file.findUnique({ where: { id: args.id } });
 
-      if (!file || file.userId !== context.session.userId) {
+      if (!file || file.userId !== context.user?.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -1584,13 +2037,13 @@ export const resolvers = {
     },
 
     deleteAlbum: async (_: any, args: any, context: Context) => {
-      if (!context.session.userId) {
+      if (!context.user?.userId) {
         throw new Error("Not authenticated");
       }
 
       const album = await prisma.album.findUnique({ where: { id: args.id } });
 
-      if (!album || album.userId !== context.session.userId) {
+      if (!album || album.userId !== context.user?.userId) {
         throw new Error("Unauthorized");
       }
 

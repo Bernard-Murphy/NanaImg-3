@@ -27,6 +27,7 @@ import {
   Volume2,
   FolderOpen,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { getFileExtension } from "@/lib/utils";
 import BouncyClick from "@/components/ui/bouncy-click";
@@ -140,16 +141,26 @@ function BrowsePageContent() {
   const handleSearch = () => {
     setSearch(searchInput);
     setPage(1);
+    refetch();
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+    refetch();
   };
 
   const handleFilterChange = (value: string) => {
     setFilter(value);
     setPage(1);
+    refetch();
   };
 
   const handleSortChange = (value: string) => {
     setSort(value);
     setPage(1);
+    refetch();
   };
 
   const items = data?.browse?.items || [];
@@ -170,12 +181,24 @@ function BrowsePageContent() {
           <div className="flex gap-4">
             <div className="flex-1">
               <div className="flex gap-2">
-                <Input
-                  placeholder="Search files, albums, and timelines..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                />
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Search files, albums, and timelines..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className={search ? "pr-10" : ""}
+                  />
+                  {search && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+                      type="button"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
+                </div>
                 <BouncyClick>
                   <Button className="w-full" onClick={handleSearch}>
                     <Search className="h-4 w-4" />
@@ -257,7 +280,7 @@ function BrowsePageContent() {
               key="loading"
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3"
             >
-              {[...Array(9)].map((_, i) => (
+              {[...Array(12)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <div className="aspect-square bg-muted" />
                   <CardHeader>
@@ -295,7 +318,10 @@ function BrowsePageContent() {
                 <div className="flex justify-center gap-4 mt-4">
                   <BouncyClick disabled={page === 1}>
                     <Button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      onClick={() => {
+                        setPage((p) => Math.max(1, p - 1));
+                        refetch();
+                      }}
                       disabled={page === 1}
                       variant="outline"
                     >
@@ -308,7 +334,10 @@ function BrowsePageContent() {
                   </span>
                   <BouncyClick disabled={!hasMore}>
                     <Button
-                      onClick={() => setPage((p) => p + 1)}
+                      onClick={() => {
+                        setPage((p) => p + 1);
+                        refetch();
+                      }}
                       disabled={!hasMore}
                       variant="outline"
                     >

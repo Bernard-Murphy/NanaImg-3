@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { gql, useMutation, useLazyQuery } from "@apollo/client";
+import { ME_QUERY } from "@/components/navbar";
 import {
   Dialog,
   DialogContent,
@@ -181,6 +182,7 @@ function AuthDialogContent({
   const [register] = useMutation(REGISTER_MUTATION);
   const [requestPasswordReset] = useMutation(REQUEST_PASSWORD_RESET_MUTATION);
   const [checkImageFile] = useLazyQuery(CHECK_IMAGE_FILE);
+  const [refetchMe] = useLazyQuery(ME_QUERY);
 
   useEffect(() => {
     // Load reCAPTCHA if site key is available
@@ -220,6 +222,14 @@ function AuthDialogContent({
     return () => clearTimeout(timeoutId);
   }, [registerForm.watch("avatarFileId"), checkImageFile]);
 
+  const saveAuthToken = (token: string) => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("auth-token", token);
+    document.cookie = `auth-token=${token}; path=/; max-age=2592000; samesite=lax${
+      process.env.NODE_ENV === "production" ? "; secure" : ""
+    }`;
+  };
+
   const handleLogin = async (data: LoginForm) => {
     try {
       let recaptchaToken = "";
@@ -241,9 +251,15 @@ function AuthDialogContent({
           recaptchaToken,
         },
       });
-
+      console.log("response", response);
       if (response.login.success) {
         toast.success("You have been logged in successfully.");
+        // Store JWT token in localStorage
+        if (response.login.token) {
+          saveAuthToken(response.login.token);
+        }
+        // Refetch user data to update authentication state
+        await refetchMe();
         setOpen(false);
         onSuccess?.();
       } else {
@@ -292,6 +308,12 @@ function AuthDialogContent({
 
       if (response.register.success) {
         toast.success("Account created successfully! You are now logged in.");
+        // Store JWT token in localStorage
+        if (response.register.token) {
+          saveAuthToken(response.register.token);
+        }
+        // Refetch user data to update authentication state
+        await refetchMe();
         setOpen(false);
         onSuccess?.();
       } else {
@@ -442,12 +464,12 @@ function AuthDialogContent({
                   <BouncyClick>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full text-white"
                       disabled={loginForm.formState.isSubmitting}
                     >
                       {loginForm.formState.isSubmitting ? (
                         <>
-                          <Spinner className="mr-2" />
+                          <Spinner className="mr-2" size="sm" color="white" />
                           Logging in
                         </>
                       ) : (
@@ -589,7 +611,7 @@ function AuthDialogContent({
                   <BouncyClick>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full text-white"
                       disabled={
                         registerForm.formState.isSubmitting ||
                         ((registerForm.watch("avatarFileId")?.trim()?.length ??
@@ -599,7 +621,7 @@ function AuthDialogContent({
                     >
                       {registerForm.formState.isSubmitting ? (
                         <>
-                          <Spinner className="mr-2" />
+                          <Spinner className="mr-2" size="sm" color="white" />
                           Creating account
                         </>
                       ) : (
@@ -656,12 +678,12 @@ function AuthDialogContent({
                   <BouncyClick>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full text-white"
                       disabled={forgotPasswordForm.formState.isSubmitting}
                     >
                       {forgotPasswordForm.formState.isSubmitting ? (
                         <>
-                          <Spinner className="mr-2" />
+                          <Spinner className="mr-2" size="sm" color="white" />
                           Sending
                         </>
                       ) : (

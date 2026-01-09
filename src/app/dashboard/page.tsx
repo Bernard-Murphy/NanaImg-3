@@ -95,6 +95,7 @@ function DashboardPageContent() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("");
   const [tab, setTab] = useState("profile");
+  const [loginModalShown, setLoginModalShown] = useState(false);
   const { data, loading, refetch } = useQuery(ME_QUERY, {
     onCompleted: (data) => {
       if (data.me) {
@@ -128,7 +129,10 @@ function DashboardPageContent() {
   }
 
   if (!user) {
-    showLoginModal();
+    if (!loginModalShown) {
+      showLoginModal();
+      setLoginModalShown(true);
+    }
     return null;
   }
 

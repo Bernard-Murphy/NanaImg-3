@@ -2,8 +2,6 @@
 
 A full-featured file sharing platform built with Next.js, TypeScript, PostgreSQL, GraphQL, and Tailwind CSS.
 
-INSTALL GIFSICLE
-
 ## Features
 
 - **File Uploading**: Upload files up to 1.5GB with drag/drop, paste, and multipart upload support
@@ -91,6 +89,22 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
+### Building for Production
+
+1. Build the application:
+
+```bash
+npm run build
+```
+
+2. Start the production server:
+
+```bash
+npm start
+```
+
+The production application will be available at `http://localhost:3000`.
+
 ## Project Structure
 
 ```
@@ -147,69 +161,6 @@ The application will be available at `http://localhost:3000`.
 - **PasswordReset**: Password reset tokens
 - **Session**: User session data
 - **Gnaa**: Special table for Jackie Singh search feature
-
-## Pages
-
-### Completed
-
-- ✅ `/` - Upload page with drag/drop, file management, and progress tracking
-- ✅ `/browse` - Browse files, albums, and timelines with filtering and search
-- ✅ `/login` - User login
-- ✅ `/register` - User registration with avatar support
-- ✅ `/forgot-password` - Request password reset
-- ✅ `/set-password/:id` - Reset password with token
-
-### To Be Implemented
-
-- ⏳ `/file/:id` - View individual file with comments
-- ⏳ `/album/:id` - View album with file grid
-- ⏳ `/u/:username` - User profile
-- ⏳ `/n/:id` - User profile by ID (redirects to username)
-- ⏳ `/dashboard` - User dashboard with content management
-- ⏳ `/info` - About page with rules and shortcuts
-- ⏳ `/fatrick` - Redirects to /file/4506
-- ⏳ `/jackiesingh` - GNAA/2600 IRC search
-- ⏳ `/timeline` - Timeline placeholder
-- ⏳ `/files/:id` - Redirects to /file/:id
-- ⏳ `/user/:username` - Redirects to /u/:username
-- ⏳ `/series/:id` - Redirects to /album/:id
-- ⏳ `/cope/:id`, `/comment/:id`, `/comments/:id` - Navigate to comment location
-
-## Features Implementation Status
-
-### Core Features
-
-- ✅ File upload with multipart support
-- ✅ Real-time file counter
-- ✅ Session-based authentication
-- ✅ Anonymous posting with persistent IDs
-- ✅ reCAPTCHA v3 integration
-- ✅ Dark theme UI
-
-### To Be Implemented
-
-- ⏳ Comment (cope) system with voting
-- ⏳ File/album/timeline viewing pages
-- ⏳ User profiles and dashboards
-- ⏳ Moderation interface (reports, mod logs)
-- ⏳ Admin panel (user management)
-- ⏳ Real-time subscriptions for comments and votes
-- ⏳ Thumbnail generation on upload
-- ⏳ File navigation (prev/next buttons)
-- ⏳ GNAA search functionality
-
-## Development Notes
-
-### Known Issues
-
-- Thumbnail generation needs to be integrated with the upload mutation
-- WebSocket connection for subscriptions needs server-side setup
-- Some navigation redirects need to be implemented
-- Mod/admin dashboard panels need to be created
-
-### Required Packages
-
-All necessary packages have been added to `package.json`. Run `npm install` to install them.
 
 ### FFmpeg Requirement
 

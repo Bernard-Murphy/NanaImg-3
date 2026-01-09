@@ -19,7 +19,7 @@ import { LogIn, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { retract, normalize, transition_fast } from "@/lib/transitions";
 
-const ME_QUERY = gql`
+export const ME_QUERY = gql`
   query Me {
     me {
       id
@@ -50,6 +50,12 @@ function NavbarContent() {
   const handleLogout = async () => {
     try {
       await logout();
+      // Clear JWT token from localStorage and cookie
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth-token");
+        document.cookie =
+          "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax";
+      }
       await refetch();
       router.push("/");
       toast.success("You have been successfully logged out.");

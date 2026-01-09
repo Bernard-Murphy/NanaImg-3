@@ -163,6 +163,7 @@ export const typeDefs = gql`
     success: Boolean!
     message: String
     user: User
+    token: String
   }
 
   type UploadUrls {
@@ -235,6 +236,7 @@ export const typeDefs = gql`
       page: Int
       limit: Int
       sortBy: String
+      recaptchaToken: String
     ): GnaaSearchResult!
     reports(page: Int, limit: Int): [Report!]!
     modLogs(page: Int, limit: Int): [ModLog!]!

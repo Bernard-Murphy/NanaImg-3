@@ -1,5 +1,30 @@
 import React from "react";
 
+const colorMap = {
+  blue: "rgb(13, 110, 253)",
+  indigo: "rgb(102, 16, 242)",
+  purple: "rgb(111, 66, 193)",
+  pink: "rgb(214, 51, 132)",
+  red: "rgb(220, 53, 69)",
+  orange: "rgb(253, 126, 20)",
+  yellow: "rgb(255, 193, 7)",
+  green: "rgb(25, 135, 84)",
+  teal: "rgb(32, 201, 151)",
+  cyan: "rgb(13, 202, 240)",
+  white: "rgb(255, 255, 255)",
+  gray: "rgb(108, 117, 125)",
+  "gray-dark": "rgb(73, 80, 87)",
+  primary: "rgb(18, 102, 241)",
+  secondary: "rgb(178, 60, 253)",
+  success: "rgb(0, 183, 74)",
+  info: "rgb(57, 192, 237)",
+  warning: "rgb(255, 169, 0)",
+  danger: "rgb(249, 49, 84)",
+  light: "rgb(249, 249, 249)",
+  dark: "rgb(38, 38, 38)",
+  black: "rgb(0, 0, 0)",
+};
+
 const getSize = (size: string) => {
   switch (size) {
     case "sm":
@@ -72,9 +97,7 @@ const Spinner = ({
             multiColor
               ? "#4285F4;#DE3E35;#F7C223;#1B9A59;#4285F4"
               : color
-              ? getComputedStyle(document.body).getPropertyValue(
-                  `--mdb-${color}`
-                )
+              ? colorMap[color as keyof typeof colorMap]
               : "#fff"
           }
           begin="0s"

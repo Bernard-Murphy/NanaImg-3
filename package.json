@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:reset-sequences": "npx prisma db execute --file <(echo \"SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1); SELECT setval('files_id_seq', COALESCE((SELECT MAX(id) FROM files), 0) + 1); SELECT setval('comments_id_seq', COALESCE((SELECT MAX(id) FROM comments), 0) + 1); SELECT setval('albums_id_seq', COALESCE((SELECT MAX(id) FROM albums), 0) + 1); SELECT setval('timelines_id_seq', COALESCE((SELECT MAX(id) FROM timelines), 0) + 1);\")"
   },
   "dependencies": {
-    "@apollo/client": "^3.8.8",
+    "@apollo/client": "^3.14.0",
     "@apollo/server": "^4.9.5",
     "@as-integrations/next": "^3.0.0",
     "@hookform/resolvers": "^5.2.2",
@@ -27,6 +28,7 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/jsonwebtoken": "^9.0.10",
     "apollo-server-core": "^3.12.1",
     "aws-sdk": "^2.1509.0",
     "bcryptjs": "^2.4.3",
@@ -42,6 +44,7 @@
     "graphql-tag": "^2.12.6",
     "graphql-ws": "^5.14.3",
     "jimp": "^0.22.10",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.294.0",
     "md5": "^2.3.0",
     "next": "14.0.4",

@@ -17,6 +17,7 @@ import {
   fade_out_scale_1,
   transition,
 } from "@/lib/transitions";
+import BouncyClick from "@/components/ui/bouncy-click";
 
 const GNAA_SEARCH = gql`
   query GnaaSearch(
@@ -25,6 +26,7 @@ const GNAA_SEARCH = gql`
     $page: Int
     $limit: Int
     $sortBy: String
+    $recaptchaToken: String
   ) {
     gnaaSearch(
       query: $query
@@ -32,6 +34,7 @@ const GNAA_SEARCH = gql`
       page: $page
       limit: $limit
       sortBy: $sortBy
+      recaptchaToken: $recaptchaToken
     ) {
       results {
         id
@@ -85,6 +88,7 @@ export default function JackieSinghPage() {
           page,
           limit: 50,
           sortBy,
+          recaptchaToken,
         },
       });
     } catch (error: any) {
@@ -118,17 +122,19 @@ export default function JackieSinghPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">GNAA/2600 IRC Search</h1>
-          <Button asChild variant="outline">
-            <a
-              href="https://f.feednana.com/random/2600.log"
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Full Logs
-            </a>
-          </Button>
+          <BouncyClick>
+            <Button asChild variant="outline">
+              <a
+                href="https://f.feednana.com/random/2600.log"
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Full Logs
+              </a>
+            </Button>
+          </BouncyClick>
         </div>
 
         <Card>
@@ -152,7 +158,6 @@ export default function JackieSinghPage() {
                 </Button>
               </div>
             </div>
-
             <div>
               <Label>Author(s)</Label>
               <div className="flex flex-wrap gap-2 mb-2">
@@ -175,30 +180,38 @@ export default function JackieSinghPage() {
                   onChange={(e) => setNewAuthor(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addAuthor()}
                 />
-                <Button onClick={addAuthor} variant="outline">
-                  Add
-                </Button>
+                <BouncyClick>
+                  <Button
+                    onClick={addAuthor}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Add
+                  </Button>
+                </BouncyClick>
               </div>
             </div>
-
             <div className="flex gap-2">
-              <Button
-                variant={sortBy === "date" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy("date")}
-              >
-                Sort by Date
-              </Button>
-              <Button
-                variant={sortBy === "relevance" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy("relevance")}
-              >
-                Sort by Relevance
-              </Button>
+              <BouncyClick>
+                <Button
+                  variant={sortBy === "date" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("date")}
+                >
+                  Sort by Date
+                </Button>
+              </BouncyClick>
+              <BouncyClick>
+                <Button
+                  variant={sortBy === "relevance" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("relevance")}
+                >
+                  Sort by Relevance
+                </Button>
+              </BouncyClick>
             </div>
-
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground text-center">
               This site is protected by reCAPTCHA, and the Google{" "}
               <a
                 href="https://policies.google.com/privacy"
@@ -212,6 +225,7 @@ export default function JackieSinghPage() {
               </a>{" "}
               apply.
             </p>
+            x
           </CardContent>
         </Card>
 
@@ -248,23 +262,27 @@ export default function JackieSinghPage() {
             </div>
 
             <div className="flex justify-center gap-4">
-              <Button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                variant="outline"
-              >
-                Previous
-              </Button>
+              <BouncyClick>
+                <Button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  variant="outline"
+                >
+                  Previous
+                </Button>
+              </BouncyClick>
               <span className="flex items-center text-sm text-muted-foreground">
                 Page {page}
               </span>
-              <Button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!hasMore}
-                variant="outline"
-              >
-                Next
-              </Button>
+              <BouncyClick>
+                <Button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!hasMore}
+                  variant="outline"
+                >
+                  Next
+                </Button>
+              </BouncyClick>
             </div>
           </>
         )}

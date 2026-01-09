@@ -102,7 +102,15 @@ export default function SetPasswordPageClient() {
 
       if (data.resetPassword.success) {
         toast.success("Password reset successfully! You are now logged in.");
-        router.push(`/u/${data.resetPassword.user.username}`);
+        // Store JWT token in localStorage and cookie
+        if (data.resetPassword.token) {
+          localStorage.setItem("auth-token", data.resetPassword.token);
+          document.cookie = `auth-token=${data.resetPassword.token}; path=/; max-age=2592000; samesite=lax${
+            process.env.NODE_ENV === "production" ? "; secure" : ""
+          }`;
+        }
+        // Redirect to dashboard which will trigger user data refetch
+        router.push("/dashboard");
       } else {
         toast.warning(
           data.resetPassword.message || "Failed to reset password."

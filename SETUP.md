@@ -191,7 +191,13 @@ If you want to create an initial admin user, you can run a seed script:
 npx ts-node prisma/seed.ts
 ```
 
-(You'll need to create this seed script with an admin user)
+After seeding the database, reset the auto-increment sequences to prevent ID conflicts:
+
+```bash
+npm run db:reset-sequences
+```
+
+This ensures that new records created by the application won't conflict with IDs used in seeded data.
 
 ### 7. Start Development Server
 

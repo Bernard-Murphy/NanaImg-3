@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,55 +8,52 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  displayName  String
-  timestamp    DateTime @default(now())
-  passwordHash String
-  email        String   @unique
-  defaultTheme String   @default("dark")
-  avatar       Int?
-  bio          String   @default("")
-  banned       Boolean  @default(false)
-  role         String   @default("child") // "child" | "janny" | "admincel"
-
-  files         File[]
-  albums        Album[]
-  timelines     Timeline[]
-  comments      Comment[]
-  votes         Vote[]
-  reports       Report[]
-  modLogs       ModLog[]
+  id             Int             @id @default(autoincrement())
+  username       String          @unique
+  displayName    String
+  timestamp      DateTime        @default(now())
+  passwordHash   String
+  email          String          @unique
+  defaultTheme   String          @default("dark")
+  avatar         Int?
+  bio            String          @default("")
+  banned         Boolean         @default(false)
+  role           String          @default("child")
+  albums         Album[]
+  comments       Comment[]
+  files          File[]
+  modLogs        ModLog[]
   passwordResets PasswordReset[]
+  reports        Report[]
+  timelines      Timeline[]
+  votes          Vote[]
 
   @@map("users")
 }
 
 model File {
-  id               Int      @id @default(autoincrement())
-  name             String?
-  manifesto        String   @default("")
-  timestamp        DateTime @default(now())
-  removed          Boolean  @default(false)
-  userId           Int?
-  anonId           String
-  anonTextColor    String
+  id                 Int      @id @default(autoincrement())
+  name               String?
+  manifesto          String   @default("")
+  timestamp          DateTime @default(now())
+  removed            Boolean  @default(false)
+  userId             Int?
+  anonId             String
+  anonTextColor      String
   anonTextBackground String
-  views            Int      @default(0)
-  fileName         String
-  fileSize         Int
-  mimeType         String
-  hashedFileName   String
-  fileUrl          String
-  thumbnailUrl     String?
-  albumId          Int?
-
-  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  album  Album? @relation(fields: [albumId], references: [id], onDelete: SetNull)
-  
-  votes    Vote[]    @relation("FileVotes")
-  reports  Report[]  @relation("FileReports")
-  modLogs  ModLog[]  @relation("FileModLogs")
+  views              Int      @default(0)
+  fileName           String
+  fileSize           Int
+  mimeType           String
+  hashedFileName     String
+  fileUrl            String
+  thumbnailUrl       String?
+  albumId            Int?
+  album              Album?   @relation(fields: [albumId], references: [id])
+  user               User?    @relation(fields: [userId], references: [id])
+  modLogs            ModLog[] @relation("FileModLogs")
+  reports            Report[] @relation("FileReports")
+  votes              Vote[]   @relation("FileVotes")
 
   @@map("files")
 }
@@ -75,35 +69,31 @@ model Album {
   views              Int      @default(0)
   removed            Boolean  @default(false)
   manifesto          String   @default("")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  files    File[]
-  votes    Vote[]    @relation("AlbumVotes")
-  reports  Report[]  @relation("AlbumReports")
-  modLogs  ModLog[]  @relation("AlbumModLogs")
+  user               User?    @relation(fields: [userId], references: [id])
+  files              File[]
+  modLogs            ModLog[] @relation("FileModLogs")
+  reports            Report[] @relation("FileReports")
+  votes              Vote[]   @relation("FileVotes")
 
   @@map("albums")
 }
 
 model Timeline {
-  id                 Int      @id @default(autoincrement())
+  id                 Int            @id @default(autoincrement())
   name               String?
-  timestamp          DateTime @default(now())
+  timestamp          DateTime       @default(now())
   userId             Int?
   anonId             String
   anonTextColor      String
   anonTextBackground String
-  views              Int      @default(0)
-  removed            Boolean  @default(false)
-  manifesto          String   @default("")
-
-  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  items    TimelineItem[]
-  votes    Vote[]         @relation("TimelineVotes")
-  reports  Report[]       @relation("TimelineReports")
-  modLogs  ModLog[]       @relation("TimelineModLogs")
+  views              Int            @default(0)
+  removed            Boolean        @default(false)
+  manifesto          String         @default("")
+  modLogs            ModLog[]       @relation("FileModLogs")
+  reports            Report[]       @relation("FileReports")
+  items              TimelineItem[]
+  user               User?          @relation(fields: [userId], references: [id])
+  votes              Vote[]         @relation("FileVotes")
 
   @@map("timelines")
 }
@@ -114,16 +104,15 @@ model TimelineItem {
   timestamp     DateTime @default(now())
   positionStart Int?
   positionEnd   Int?
-
-  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  timeline      Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
 
   @@map("timeline_items")
 }
 
 model Comment {
-  id                 Int      @id @default(autoincrement())
-  timestamp          DateTime @default(now())
-  flavor             String   // "file" | "album" | "timeline" | "user"
+  id                 Int       @id @default(autoincrement())
+  timestamp          DateTime  @default(now())
+  flavor             String
   repliesTo          Int?
   contentId          Int
   userId             Int?
@@ -131,35 +120,29 @@ model Comment {
   anonTextColor      String
   anonTextBackground String
   text               String
-  removed            Boolean  @default(false)
-
-  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  replyToComment Comment?  @relation("CommentReplies", fields: [repliesTo], references: [id], onDelete: SetNull)
-
-  replies  Comment[] @relation("CommentReplies")
-  votes    Vote[]    @relation("CommentVotes")
-  reports  Report[]  @relation("CommentReports")
-  modLogs  ModLog[]  @relation("CommentModLogs")
-
+  removed            Boolean   @default(false)
+  replyToComment     Comment?  @relation("CommentReplies", fields: [repliesTo], references: [id])
+  replies            Comment[] @relation("CommentReplies")
+  user               User?     @relation(fields: [userId], references: [id])
+  modLogs            ModLog[]  @relation("FileModLogs")
+  reports            Report[]  @relation("FileReports")
+  votes              Vote[]    @relation("FileVotes")
 
   @@map("comments")
 }
 
 model Vote {
   id        Int      @id @default(autoincrement())
-  flavor    String   // "file" | "album" | "timeline" | "comment"
-  vote      Int      // 1 for upvote, -1 for downvote
+  flavor    String
+  vote      Int
   userId    Int
   contentId Int
   timestamp DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Relations to content types
-  file     File?     @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
-  album    Album?    @relation("AlbumVotes", fields: [contentId], references: [id], map: "album_votes_fk")
-  timeline Timeline? @relation("TimelineVotes", fields: [contentId], references: [id], map: "timeline_votes_fk")
-  comment  Comment?  @relation("CommentVotes", fields: [contentId], references: [id], map: "comment_votes_fk")
+  file      Album    @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  file      Comment  @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  file      File     @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  file      Timeline @relation("FileVotes", fields: [contentId], references: [id], map: "file_votes_fk")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, flavor, contentId])
   @@map("votes")
@@ -168,40 +151,34 @@ model Vote {
 model Report {
   id        Int      @id @default(autoincrement())
   timestamp DateTime @default(now())
-  flavor    String   // "file" | "album" | "timeline" | "user" | "comment"
+  flavor    String
   contentId Int
   userId    Int?
   anonId    String
   dismissed Boolean  @default(false)
   reason    String   @default("")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  // Relations to content types
-  file     File?     @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
-  album    Album?    @relation("AlbumReports", fields: [contentId], references: [id], map: "album_reports_fk")
-  timeline Timeline? @relation("TimelineReports", fields: [contentId], references: [id], map: "timeline_reports_fk")
-  comment  Comment?  @relation("CommentReports", fields: [contentId], references: [id], map: "comment_reports_fk")
+  file      Album    @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
+  file      Comment  @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
+  file      File     @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
+  user      User?    @relation(fields: [userId], references: [id])
+  file      Timeline @relation("FileReports", fields: [contentId], references: [id], map: "file_reports_fk")
 
   @@map("reports")
 }
 
 model ModLog {
-  id             Int      @id @default(autoincrement())
-  timestamp      DateTime @default(now())
-  userId         Int
-  flavor         String   // "banned" | "removed" | "restored" | "dismissed" | "promoted to janny" | "demoted to janny" | "promoted to admincel" | "demoted to child"
-  contentFlavor  String   // "file" | "album" | "timeline" | "user" | "comment"
-  contentId      Int
-  details        String   @default("")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Relations to content types
-  file     File?     @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
-  album    Album?    @relation("AlbumModLogs", fields: [contentId], references: [id], map: "album_modlogs_fk")
-  timeline Timeline? @relation("TimelineModLogs", fields: [contentId], references: [id], map: "timeline_modlogs_fk")
-  comment  Comment?  @relation("CommentModLogs", fields: [contentId], references: [id], map: "comment_modlogs_fk")
+  id            Int      @id @default(autoincrement())
+  timestamp     DateTime @default(now())
+  userId        Int
+  flavor        String
+  contentFlavor String
+  contentId     Int
+  details       String   @default("")
+  file          Album    @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
+  file          Comment  @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
+  file          File     @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file          Timeline @relation("FileModLogs", fields: [contentId], references: [id], map: "file_modlogs_fk")
 
   @@map("mod_logs")
 }
@@ -222,8 +199,7 @@ model PasswordReset {
   userId    Int
   email     String
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
 }
@@ -236,4 +212,3 @@ model Session {
   @@index([expire])
   @@map("session")
 }
-

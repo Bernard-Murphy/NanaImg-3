@@ -1,11 +1,13 @@
-import session from 'express-session'
-import connectPgSimple from 'connect-pg-simple'
+import jwt from 'jsonwebtoken'
 import { randomBytes } from 'crypto'
 
-const PgSession = connectPgSimple(session)
+export interface AuthPayload {
+  userId: number
+  iat?: number
+  exp?: number
+}
 
-export interface SessionData {
-  userId?: number
+export interface AnonymousData {
   anonId: string
   anonTextColor: string
   anonTextBackground: string
@@ -29,26 +31,18 @@ export function generateRandomColor(): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-export function createSessionStore() {
-  return new PgSession({
-    conString: process.env.DATABASE_URL,
-    tableName: 'session',
-    createTableIfMissing: false,
-  })
+// JWT token functions
+export function signJWT(payload: AuthPayload): string {
+  const secret = process.env.JWT_SECRET || 'feednana-jwt-secret-key-change-me'
+  return jwt.sign(payload, secret, { expiresIn: '30d' })
 }
 
-export function createSessionMiddleware() {
-  return session({
-    store: createSessionStore(),
-    secret: process.env.SESSION_SECRET || 'feednana-secret-key-change-me',
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    },
-  })
+export function verifyJWT(token: string): AuthPayload | null {
+  try {
+    const secret = process.env.JWT_SECRET || 'feednana-jwt-secret-key-change-me'
+    return jwt.verify(token, secret) as AuthPayload
+  } catch (error) {
+    return null
+  }
 }
 
