@@ -6,10 +6,11 @@
     "dev": "next dev",
     "build": "prisma generate && ESLINT_NO_DEV_ERRORS=true next build",
     "build:skip-lint": "prisma generate && ESLINT_NO_DEV_ERRORS=true next build --no-lint",
-    "start": "next start",
+    "start": "next start -p 7070",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "db:reset-sequences": "npx prisma db execute --file <(echo \"SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1); SELECT setval('files_id_seq', COALESCE((SELECT MAX(id) FROM files), 0) + 1); SELECT setval('comments_id_seq', COALESCE((SELECT MAX(id) FROM comments), 0) + 1); SELECT setval('albums_id_seq', COALESCE((SELECT MAX(id) FROM albums), 0) + 1); SELECT setval('timelines_id_seq', COALESCE((SELECT MAX(id) FROM timelines), 0) + 1);\")"
+    "db:reset-sequences": "npx prisma db execute --file <(echo \"SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1); SELECT setval('files_id_seq', COALESCE((SELECT MAX(id) FROM files), 0) + 1); SELECT setval('comments_id_seq', COALESCE((SELECT MAX(id) FROM comments), 0) + 1); SELECT setval('albums_id_seq', COALESCE((SELECT MAX(id) FROM albums), 0) + 1); SELECT setval('timelines_id_seq', COALESCE((SELECT MAX(id) FROM timelines), 0) + 1);\")",
+    "db:backup": "node scripts/pg_backup.js"
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",
