@@ -34,10 +34,10 @@ interface Context {
 
 // Helper function to get karma for content
 async function getKarma(flavor: string, contentId: number): Promise<number> {
-  const votes = await prisma.vote.findMany({
+  const votes = (await prisma.vote.findMany({
     where: { flavor, contentId },
-  });
-  return votes.reduce<number>((sum, vote) => sum + vote.vote, 0);
+  })) as { vote: number }[];
+  return votes.reduce((sum, vote) => sum + vote.vote, 0);
 }
 
 // Helper function to get user's vote
