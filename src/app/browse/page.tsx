@@ -273,7 +273,7 @@ function BrowsePageContent() {
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
-              initial={fade_out}
+              initial={fade_out_scale_1}
               animate={normalize}
               exit={fade_out_scale_1}
               transition={transition_fast}
@@ -291,7 +291,7 @@ function BrowsePageContent() {
             </motion.div>
           ) : (
             <motion.div
-              initial={fade_out}
+              initial={fade_out_scale_1}
               animate={normalize}
               exit={fade_out_scale_1}
               transition={transition_fast}

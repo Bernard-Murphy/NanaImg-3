@@ -420,8 +420,8 @@ function UploadPageContent() {
                         className="w-12 h-12"
                       />
                       <div className="flex-1 min-w-0 flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
+                        <div className="flex-1 w-0">
+                          <div className="font-medium truncate max-w-full">
                             {file.file.name}
                           </div>
                           <div className="text-sm text-muted-foreground">
@@ -494,7 +494,7 @@ function UploadPageContent() {
               id="manifesto"
               value={manifesto}
               onChange={(e) => setManifesto(e.target.value)}
-              placeholder="(Optional)"
+              placeholder="(Optional - Markdown supported)"
               disabled={uploading}
             />
           </div>

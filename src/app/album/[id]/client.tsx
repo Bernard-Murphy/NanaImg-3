@@ -225,11 +225,23 @@ export default function AlbumPageClient() {
     }
   };
 
-  const copyLink = (bb?: boolean) => {
-    let toCopy = selectedFile.fileUrl;
+  const copyLink = (bb?: boolean, all?: boolean) => {
+    if (all){
+      let toCopy = album.files.filter(file => {
+        if (bb) return file.mimeType.startsWith("image/");
+        return true;
+      }).map((file: any) => {
+        if (bb) return `[IMG]${file.fileUrl}[/IMG]`;
+        return file.fileUrl;
+      }).join("\n");
+      navigator.clipboard.writeText(toCopy);
+      toast.success(`${bb ? "BBCode" : "Links"} copied to clipboard`);
+    } else {
+      let toCopy = selectedFile.fileUrl;
     if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
     navigator.clipboard.writeText(toCopy);
     toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
+    }
   };
 
   return (
@@ -368,9 +380,33 @@ export default function AlbumPageClient() {
                   )}
                 </CardContent>
               </Card>
-              <h2 className="text-2xl font-bold">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">
                 Files ({album.files.length})
               </h2>
+              <div className="flex items-center justify-between space-x-2">
+                <BouncyClick>
+                              <Button
+                                variant="outline"
+                                onClick={() => copyLink(false, true)}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy Links
+                              </Button>
+                            </BouncyClick>
+                            {Boolean(album.files.find(file => file.mimeType.startsWith("image/"))) && (
+                              <BouncyClick>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => copyLink(true, true)}
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy BBCodes
+                                </Button>
+                              </BouncyClick>
+                            )}
+              </div>
+              </div>
               {/* File Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {album.files.map((file: any) => (
@@ -416,7 +452,7 @@ export default function AlbumPageClient() {
                   onOpenChange={() => setSelectedFile(null)}
                 >
                   <DialogContent className="[&>button]:hidden max-w-4xl overflow-x-hidden">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2 w-full">
                       <BouncyClick
                         disabled={getCurrentFileIndex() <= 0}
                         className="mr-2"
@@ -461,9 +497,9 @@ export default function AlbumPageClient() {
                         animate={normalize}
                         exit={dialogMotion.exit}
                         transition={transition_fast}
-                        className="space-y-4"
+                        className="space-y-4 w-full overflow-x-hidden"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between w-100 sm:w-auto">
                           <div className="space-y-1">
                             <h2 className="text-xl font-bold">
                               {selectedFile.name || "Untitled"}
@@ -472,14 +508,14 @@ export default function AlbumPageClient() {
                               {selectedFile.fileName}
                             </p>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex justify-between gap-2 mt-2 sm:mt-0 w-100 sm:w-auto">
                             <BouncyClick>
                               <Button
                                 variant="outline"
                                 onClick={() => copyLink()}
                               >
                                 <Copy className="h-4 w-4 mr-2" />
-                                Copy Link
+                                Link
                               </Button>
                             </BouncyClick>
                             {selectedFile.mimeType.startsWith("image/") && (
@@ -489,7 +525,7 @@ export default function AlbumPageClient() {
                                   onClick={() => copyLink(true)}
                                 >
                                   <Copy className="h-4 w-4 mr-2" />
-                                  Copy BBCode
+                                  BBCode
                                 </Button>
                               </BouncyClick>
                             )}
@@ -502,8 +538,8 @@ export default function AlbumPageClient() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download
+                                  <Download className="h-4 w-4 mr-0 sm:mr-2" />
+                                  <span className="hidden sm:block">Download</span>
                                 </a>
                               </Button>
                             </BouncyClick>
@@ -513,15 +549,15 @@ export default function AlbumPageClient() {
                                 variant="ghost"
                                 size="sm"
                               >
-                                <X className="h-4 w-4 mr-2" />
-                                Close
+                                <X className="h-4 w-4  mr-0 sm:mr-2" />
+                                <span className="hidden sm:block">Close</span>
                               </Button>
                             </BouncyClick>
                           </div>
                         </div>
 
                         {/* File Preview */}
-                        <div className="border rounded-lg overflow-hidden bg-muted">
+                        <div className="border rounded-lg overflow-hidden w-full bg-muted">
                           {canEmbed(selectedFile.mimeType) ? (
                             selectedFile.mimeType.startsWith("image/") ? (
                               <img

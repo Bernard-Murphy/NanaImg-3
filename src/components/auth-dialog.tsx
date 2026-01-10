@@ -404,17 +404,17 @@ function AuthDialogContent({
         >
           <TabsList className="grid w-full grid-cols-3">
             <BouncyClick>
-              <TabsTrigger className="w-full" value="login">
+              <TabsTrigger className="w-full text-xs sm:text-sm" value="login">
                 Login
               </TabsTrigger>
             </BouncyClick>
             <BouncyClick>
-              <TabsTrigger className="w-full" value="register">
+              <TabsTrigger className="w-full text-xs sm:text-sm" value="register">
                 Register
               </TabsTrigger>
             </BouncyClick>
             <BouncyClick>
-              <TabsTrigger className="w-full" value="forgot">
+              <TabsTrigger className="w-full text-xs sm:text-sm" value="forgot">
                 Forgot Password
               </TabsTrigger>
             </BouncyClick>
@@ -489,7 +489,7 @@ function AuthDialogContent({
                 animate={normalize}
                 exit={fade_out_scale_1}
                 transition={transition_fast}
-                className="space-y-4 my-4"
+                className="space-y-4 my-4 overflow-y-auto max-h-[50vh]"
               >
                 <form
                   onSubmit={registerForm.handleSubmit(handleRegister)}
