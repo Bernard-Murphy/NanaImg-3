@@ -20,6 +20,7 @@ const BROWSE_ITEMS_UPDATED = "BROWSE_ITEMS_UPDATED";
 const FILE_COUNT_UPDATED = "FILE_COUNT_UPDATED";
 const FILE_UPDATED = "FILE_UPDATED";
 const ALBUM_UPDATED = "ALBUM_UPDATED";
+const TIMELINE_UPDATED = "TIMELINE_UPDATED";
 const COMMENTS_UPDATED = "COMMENTS_UPDATED";
 
 interface Context {
@@ -360,533 +361,215 @@ export const resolvers = {
     },
 
     browse: async (_: any, args: any) => {
-      const page = args.page || 1;
-      const limit = args.limit || 49;
+      const page = Math.max(1, Math.min(args.page || 1, 1000)); // Limit max page to 1000
+      const limit = Math.max(1, Math.min(args.limit || 49, 100)); // Limit max items per page to 100
       const skip = (page - 1) * limit;
       const sort = args.sort || "recent";
       const filter = args.filter || "all";
-      const search = args.search || "";
+      const search = (args.search || "").substring(0, 100); // Limit search string length
 
-      let orderBy: any = { timestamp: "desc" };
-      let useCommentSorting = false;
 
-      if (sort === "recent-comment") {
-        // We'll handle this with custom sorting after fetching
-        useCommentSorting = true;
-        orderBy = { timestamp: "desc" }; // Fallback ordering
-      }
+      const where = { removed: false };
 
-      // For comment sorting, we need to fetch items with their latest comments
-      // and sort them after fetching, since we can't do this efficiently in a single query
-
-      const where: any = { removed: false };
-
-      let items: any[] = [];
-      let total = 0;
-
-      // Implement search functionality
-      if (search) {
-        // Search through files, albums, and timelines
-        const searchResults: any[] = [];
-
-        // Search files by name and comments
-        if (filter === "all" || filter === "files") {
-          // First, find files that match name/fileName/manifesto/users
-          const nameMatchedFiles = await prisma.file.findMany({
-            where: {
-              ...where,
-              albumId: null,
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { fileName: { contains: search, mode: "insensitive" } },
-                { manifesto: { contains: search, mode: "insensitive" } },
-                {
-                  user: {
-                    OR: [
-                      { username: { contains: search, mode: "insensitive" } },
-                      {
-                        displayName: { contains: search, mode: "insensitive" },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            orderBy,
-            include: {
-              user: {
-                select: {
-                  username: true,
-                  displayName: true,
-                },
-              },
-            },
-          });
-
-          // Then, find files that have comments containing the search term
-          const commentMatchedFileIds = await prisma.comment.findMany({
-            where: {
-              flavor: "file",
-              text: { contains: search, mode: "insensitive" },
-              removed: false,
-            },
-            select: { contentId: true },
-            distinct: ["contentId"],
-          });
-
-          const commentFileIds = commentMatchedFileIds.map(
-            (c: { contentId: number }) => c.contentId
-          );
-
-          if (commentFileIds.length > 0) {
-            const commentMatchedFiles = await prisma.file.findMany({
-              where: {
-                ...where,
-                albumId: null,
-                id: { in: commentFileIds },
-              },
-              orderBy,
-            });
-
-            // Combine and deduplicate
-            const allFileIds = new Set([
-              ...nameMatchedFiles.map((f) => f.id),
-              ...commentMatchedFiles.map((f) => f.id),
-            ]);
-            const combinedFiles = [
-              ...nameMatchedFiles,
-              ...commentMatchedFiles.filter((f) => !allFileIds.has(f.id)),
-            ];
-
-            searchResults.push(
-              ...combinedFiles.map((file) => ({ ...file, __typename: "File" }))
-            );
-          } else {
-            searchResults.push(
-              ...nameMatchedFiles.map((file) => ({
-                ...file,
-                __typename: "File",
-              }))
-            );
-          }
-        }
-
-        // Search albums by name and comments
-        if (filter === "all" || filter === "albums") {
-          // First, find albums that match name/manifesto/users
-          const nameMatchedAlbums = await prisma.album.findMany({
-            where: {
-              ...where,
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { manifesto: { contains: search, mode: "insensitive" } },
-                {
-                  user: {
-                    OR: [
-                      { username: { contains: search, mode: "insensitive" } },
-                      {
-                        displayName: { contains: search, mode: "insensitive" },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            orderBy,
-            include: {
-              files: {
-                select: {
-                  thumbnailUrl: true,
-                  mimeType: true,
-                },
-                take: 1,
-              },
-              user: {
-                select: {
-                  username: true,
-                  displayName: true,
-                },
-              },
-            },
-          });
-
-          // Then, find albums that have comments containing the search term
-          const commentMatchedAlbumIds = await prisma.comment.findMany({
-            where: {
-              flavor: "album",
-              text: { contains: search, mode: "insensitive" },
-              removed: false,
-            },
-            select: { contentId: true },
-            distinct: ["contentId"],
-          });
-
-          const commentAlbumIds = commentMatchedAlbumIds.map(
-            (c: { contentId: number }) => c.contentId
-          );
-
-          if (commentAlbumIds.length > 0) {
-            const commentMatchedAlbums = await prisma.album.findMany({
-              where: {
-                ...where,
-                id: { in: commentAlbumIds },
-              },
-              orderBy,
-              include: {
-                files: {
-                  select: {
-                    thumbnailUrl: true,
-                    mimeType: true,
-                  },
-                  take: 1,
-                },
-              },
-            });
-
-            // Combine and deduplicate
-            const allAlbumIds = new Set([
-              ...nameMatchedAlbums.map((a) => a.id),
-              ...commentMatchedAlbums.map((a) => a.id),
-            ]);
-            const combinedAlbums = [
-              ...nameMatchedAlbums,
-              ...commentMatchedAlbums.filter((a) => !allAlbumIds.has(a.id)),
-            ];
-
-            searchResults.push(
-              ...combinedAlbums.map((album) => ({
-                ...album,
-                __typename: "Album",
-              }))
-            );
-          } else {
-            searchResults.push(
-              ...nameMatchedAlbums.map((album) => ({
-                ...album,
-                __typename: "Album",
-              }))
-            );
-          }
-        }
-
-        // Search timelines by name and comments
-        if (filter === "all" || filter === "timelines") {
-          // First, find timelines that match name/manifesto/users
-          const nameMatchedTimelines = await prisma.timeline.findMany({
-            where: {
-              ...where,
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { manifesto: { contains: search, mode: "insensitive" } },
-                {
-                  user: {
-                    OR: [
-                      { username: { contains: search, mode: "insensitive" } },
-                      {
-                        displayName: { contains: search, mode: "insensitive" },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            orderBy,
-            include: {
-              items: {
-                take: 1,
-              },
-              user: {
-                select: {
-                  username: true,
-                  displayName: true,
-                },
-              },
-            },
-          });
-
-          // Then, find timelines that have comments containing the search term
-          const commentMatchedTimelineIds = await prisma.comment.findMany({
-            where: {
-              flavor: "timeline",
-              text: { contains: search, mode: "insensitive" },
-              removed: false,
-            },
-            select: { contentId: true },
-            distinct: ["contentId"],
-          });
-
-          const commentTimelineIds = commentMatchedTimelineIds.map(
-            (c: { contentId: number }) => c.contentId
-          );
-
-          if (commentTimelineIds.length > 0) {
-            const commentMatchedTimelines = await prisma.timeline.findMany({
-              where: {
-                ...where,
-                id: { in: commentTimelineIds },
-              },
-              orderBy,
-              include: {
-                items: {
-                  take: 1,
-                },
-              },
-            });
-
-            // Combine and deduplicate
-            const allTimelineIds = new Set([
-              ...nameMatchedTimelines.map((t) => t.id),
-              ...commentMatchedTimelines.map((t) => t.id),
-            ]);
-            const combinedTimelines = [
-              ...nameMatchedTimelines,
-              ...commentMatchedTimelines.filter(
-                (t) => !allTimelineIds.has(t.id)
-              ),
-            ];
-
-            searchResults.push(
-              ...combinedTimelines.map((timeline) => ({
-                ...timeline,
-                __typename: "Timeline",
-              }))
-            );
-          } else {
-            searchResults.push(
-              ...nameMatchedTimelines.map((timeline) => ({
-                ...timeline,
-                __typename: "Timeline",
-              }))
-            );
-          }
-        }
-
-        // Sort by timestamp and apply pagination
-        searchResults.sort(
-          (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-        );
-        const paginatedResults = searchResults.slice(skip, skip + limit);
-
-        return {
-          items: paginatedResults,
-          total: searchResults.length,
-          hasMore: skip + limit < searchResults.length,
-        };
-      }
-
-      if (filter === "all" || filter === "files") {
-        // For "all" filter, fetch more items to ensure proper pagination after sorting
-        const fetchLimit =
-          filter === "files" ? limit : Math.max(limit * 3, 100);
+      if (filter === "files") {
         const files = await prisma.file.findMany({
           where: { ...where, albumId: null },
-          orderBy: useCommentSorting ? undefined : orderBy,
-          skip: filter === "files" ? skip : 0,
-          take: filter === "files" ? limit : fetchLimit,
+          orderBy: { timestamp: "desc" },
+          skip,
+          take: limit,
         });
-        // Add __typename for GraphQL union resolution
-        items.push(...files.map((file) => ({ ...file, __typename: "File" })));
+        const items = files.map(file => ({ ...file, __typename: "File" }));
+        return {
+          items,
+          total: files.length >= limit ? skip + files.length + 1 : skip + files.length, // Rough estimate
+          hasMore: files.length >= limit,
+        };
       }
 
-      if (filter === "all" || filter === "albums") {
-        // For "all" filter, fetch more items to ensure proper pagination after sorting
-        const fetchLimit =
-          filter === "albums" ? limit : Math.max(limit * 3, 100);
+      if (filter === "albums") {
         const albums = await prisma.album.findMany({
           where,
-          orderBy: useCommentSorting ? undefined : orderBy,
-          skip: filter === "albums" ? skip : 0,
-          take: filter === "albums" ? limit : fetchLimit,
+          orderBy: { timestamp: "desc" },
+          skip,
+          take: limit,
           include: {
             files: {
-              select: {
-                thumbnailUrl: true,
-                mimeType: true,
-              },
-              take: 1, // Only need one file for thumbnail
+              select: { thumbnailUrl: true, mimeType: true },
+              take: 1,
             },
           },
         });
-        // Add __typename for GraphQL union resolution
-        items.push(
-          ...albums.map((album) => ({ ...album, __typename: "Album" }))
-        );
+        const items = albums.map(album => ({ ...album, __typename: "Album" }));
+        return {
+          items,
+          total: albums.length >= limit ? skip + albums.length + 1 : skip + albums.length,
+          hasMore: albums.length >= limit,
+        };
       }
 
-      if (filter === "all" || filter === "timelines") {
-        // For "all" filter, fetch more items to ensure proper pagination after sorting
-        const fetchLimit =
-          filter === "timelines" ? limit : Math.max(limit * 3, 100);
+      if (filter === "timelines") {
         const timelines = await prisma.timeline.findMany({
           where,
-          orderBy: useCommentSorting ? undefined : orderBy,
-          skip: filter === "timelines" ? skip : 0,
-          take: filter === "timelines" ? limit : fetchLimit,
-          include: {
-            items: {
-              take: 1, // Just to ensure items field exists
-            },
-          },
-        });
-        // Add __typename for GraphQL union resolution
-        items.push(
-          ...timelines.map((timeline) => ({
-            ...timeline,
-            __typename: "Timeline",
-          }))
-        );
-      }
-
-      // For comment sorting, get items based on comments that match search/filter criteria
-      if (useCommentSorting) {
-        // Build where clause for comments based on search and filter
-        const commentWhere: any = { removed: false };
-
-        // Add search criteria to comments
-        if (search) {
-          commentWhere.text = { contains: search, mode: "insensitive" };
-        }
-
-        // Add filter criteria to comments
-        if (filter === "files") {
-          commentWhere.flavor = "file";
-        } else if (filter === "albums") {
-          commentWhere.flavor = "album";
-        } else if (filter === "timelines") {
-          commentWhere.flavor = "timeline";
-        }
-        // For "all" filter, include all comment flavors
-
-        // Get comments sorted by timestamp descending, limited to get recent activity
-        const recentComments = await prisma.comment.findMany({
-          where: commentWhere,
-          select: {
-            contentId: true,
-            flavor: true,
-            timestamp: true,
-          },
           orderBy: { timestamp: "desc" },
-          take: 1000, // Limit to avoid excessive data, adjust as needed
+          skip,
+          take: limit,
+          include: {
+            items: { take: 1 },
+          },
         });
-
-        // Group comments by content to get unique items with their latest comment
-        const itemCommentMap = new Map();
-
-        for (const comment of recentComments) {
-          const key = `${comment.flavor}-${comment.contentId}`;
-          if (!itemCommentMap.has(key)) {
-            itemCommentMap.set(key, {
-              contentId: comment.contentId,
-              flavor: comment.flavor,
-              latestCommentTime: comment.timestamp,
-            });
-          }
-        }
-
-        // Get the unique items from the comments
-        const commentedItems = [];
-        const fileIds = [];
-        const albumIds = [];
-        const timelineIds = [];
-
-        for (const item of Array.from(itemCommentMap.values())) {
-          if (item.flavor === "file") {
-            fileIds.push(item.contentId);
-          } else if (item.flavor === "album") {
-            albumIds.push(item.contentId);
-          } else if (item.flavor === "timeline") {
-            timelineIds.push(item.contentId);
-          }
-        }
-
-        // Fetch the actual items
-        if (fileIds.length > 0) {
-          const files = await prisma.file.findMany({
-            where: {
-              ...where,
-              albumId: null,
-              id: { in: fileIds },
-            },
-          });
-          commentedItems.push(
-            ...files.map((file) => ({ ...file, __typename: "File" }))
-          );
-        }
-
-        if (albumIds.length > 0) {
-          const albums = await prisma.album.findMany({
-            where: {
-              ...where,
-              id: { in: albumIds },
-            },
-            include: {
-              files: {
-                select: {
-                  thumbnailUrl: true,
-                  mimeType: true,
-                },
-                take: 1,
-              },
-            },
-          });
-          commentedItems.push(
-            ...albums.map((album) => ({ ...album, __typename: "Album" }))
-          );
-        }
-
-        if (timelineIds.length > 0) {
-          const timelines = await prisma.timeline.findMany({
-            where: {
-              ...where,
-              id: { in: timelineIds },
-            },
-            include: {
-              items: {
-                take: 1,
-              },
-            },
-          });
-          commentedItems.push(
-            ...timelines.map((timeline) => ({
-              ...timeline,
-              __typename: "Timeline",
-            }))
-          );
-        }
-
-        // Sort items by their latest comment timestamp
-        commentedItems.sort((a, b) => {
-          const aKey = `${a.__typename.toLowerCase()}-${a.id}`;
-          const bKey = `${b.__typename.toLowerCase()}-${b.id}`;
-          const aCommentTime =
-            itemCommentMap.get(aKey)?.latestCommentTime?.getTime() || 0;
-          const bCommentTime =
-            itemCommentMap.get(bKey)?.latestCommentTime?.getTime() || 0;
-          return bCommentTime - aCommentTime;
-        });
-
-        // Apply pagination to commented items
-        const paginatedItems = commentedItems.slice(skip, skip + limit);
-        const total = commentedItems.length;
-
+        const items = timelines.map(timeline => ({ ...timeline, __typename: "Timeline" }));
         return {
-          items: paginatedItems,
-          total,
-          hasMore: skip + limit < total,
-        };
-      } else {
-        items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-        // Apply pagination after sorting
-        const paginatedItems = items.slice(skip, skip + limit);
-        total = items.length;
-
-        return {
-          items: paginatedItems,
-          total,
-          hasMore: skip + limit < total,
+          items,
+          total: timelines.length >= limit ? skip + timelines.length + 1 : skip + timelines.length,
+          hasMore: timelines.length >= limit,
         };
       }
+
+      // filter === "all" - combine files, albums, and timelines
+      const fetchLimit = Math.max(limit * 3, 100); // Fetch more to ensure proper mixing
+
+      const [files, albums, timelines] = await Promise.all([
+        prisma.file.findMany({
+          where: { ...where, albumId: null },
+          orderBy: { timestamp: "desc" },
+          take: fetchLimit,
+        }),
+        prisma.album.findMany({
+          where,
+          orderBy: { timestamp: "desc" },
+          take: fetchLimit,
+          include: {
+            files: {
+              select: { thumbnailUrl: true, mimeType: true },
+              take: 1,
+            },
+          },
+        }),
+        prisma.timeline.findMany({
+          where,
+          orderBy: { timestamp: "desc" },
+          take: fetchLimit,
+          include: {
+            items: { take: 1 },
+          },
+        }),
+      ]);
+
+      // Combine and sort by timestamp
+      const allItems = [
+        ...files.map(file => ({ ...file, __typename: "File" })),
+        ...albums.map(album => ({ ...album, __typename: "Album" })),
+        ...timelines.map(timeline => ({ ...timeline, __typename: "Timeline" })),
+      ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+      // Apply pagination
+      const paginatedItems = allItems.slice(skip, skip + limit);
+      const total = allItems.length;
+
+      return {
+        items: paginatedItems,
+        total,
+        hasMore: skip + limit < total,
+      };
+    },
+
+    comments: async (_: any, args: any) => {
+      const limit = Math.max(1, Math.min(args.limit || 100, 500)); // Limit to 500 max
+      const filter = args.filter || "all";
+
+      let where: any = { removed: false };
+
+      // Filter by content type if specified
+      if (filter === "files") {
+        where.flavor = "file";
+      } else if (filter === "albums") {
+        where.flavor = "album";
+      } else if (filter === "timelines") {
+        where.flavor = "timeline";
+      }
+
+      const comments = await prisma.comment.findMany({
+        where,
+        orderBy: { timestamp: "desc" },
+        take: limit,
+        include: {
+          user: true,
+        },
+      });
+
+      // Group comments by content to get the most recent comment for each item
+      const contentMap = new Map();
+
+      for (const comment of comments) {
+        const key = `${comment.flavor}-${comment.contentId}`;
+        if (!contentMap.has(key) || contentMap.get(key).timestamp < comment.timestamp) {
+          contentMap.set(key, comment);
+        }
+      }
+
+      // Convert to array and sort by timestamp
+      const recentComments = Array.from(contentMap.values())
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        .slice(0, limit);
+
+      // Fetch the content for each comment
+      const commentWithContent = await Promise.all(
+        recentComments.map(async (comment) => {
+          let content = null;
+
+          if (comment.flavor === "file") {
+            content = await prisma.file.findUnique({
+              where: { id: comment.contentId },
+              include: {
+                user: true,
+              },
+            });
+            if (content) {
+              content = { ...content, __typename: "File" };
+            }
+          } else if (comment.flavor === "album") {
+            content = await prisma.album.findUnique({
+              where: { id: comment.contentId },
+              include: {
+                user: true,
+                files: {
+                  select: { thumbnailUrl: true, mimeType: true },
+                  take: 1,
+                },
+              },
+            });
+            if (content) {
+              content = { ...content, __typename: "Album" };
+            }
+          } else if (comment.flavor === "timeline") {
+            content = await prisma.timeline.findUnique({
+              where: { id: comment.contentId },
+              include: {
+                user: true,
+                items: { take: 1 },
+              },
+            });
+            if (content) {
+              content = { ...content, __typename: "Timeline" };
+            }
+          }
+
+          // Only include if content exists and is not removed
+          if (content && !content.removed) {
+            return {
+              id: comment.id,
+              timestamp: comment.timestamp,
+              flavor: comment.flavor,
+              contentId: comment.contentId,
+              content,
+            };
+          }
+          return null;
+        })
+      );
+
+      // Filter out null values
+      return commentWithContent.filter(Boolean);
     },
 
     search: async (_: any, args: any) => {
@@ -1698,6 +1381,38 @@ export const resolvers = {
         throw new Error("Vote must be 1, -1, or 0");
       }
 
+      // Validate that the content exists and is not removed
+      let contentExists = false;
+      if (flavor === "file") {
+        const file = await prisma.file.findUnique({
+          where: { id: contentId },
+          select: { id: true, removed: true }
+        });
+        contentExists = file !== null && !file.removed;
+      } else if (flavor === "album") {
+        const album = await prisma.album.findUnique({
+          where: { id: contentId },
+          select: { id: true, removed: true }
+        });
+        contentExists = album !== null && !album.removed;
+      } else if (flavor === "timeline") {
+        const timeline = await prisma.timeline.findUnique({
+          where: { id: contentId },
+          select: { id: true, removed: true }
+        });
+        contentExists = timeline !== null && !timeline.removed;
+      } else if (flavor === "comment") {
+        const comment = await prisma.comment.findUnique({
+          where: { id: contentId },
+          select: { id: true, removed: true }
+        });
+        contentExists = comment !== null && !comment.removed;
+      }
+
+      if (!contentExists) {
+        throw new Error(`Content with id ${contentId} and flavor ${flavor} does not exist or has been removed`);
+      }
+
       // Check if vote already exists
       const existingVote = await prisma.vote.findFirst({
         where: {
@@ -1739,6 +1454,14 @@ export const resolvers = {
           where: { id: contentId },
         });
         pubsub.publish(ALBUM_UPDATED, { albumUpdated: album });
+      } else if (flavor === "timeline") {
+        const timeline = await prisma.timeline.findUnique({
+          where: { id: contentId },
+        });
+        pubsub.publish(TIMELINE_UPDATED, { timelineUpdated: timeline });
+      } else if (flavor === "comment") {
+        // Comments don't have their own pubsub, they update their parent content
+        // The frontend will refetch the parent content anyway
       }
 
       return true;

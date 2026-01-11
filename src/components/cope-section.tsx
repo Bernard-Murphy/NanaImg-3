@@ -628,7 +628,7 @@ function CommentItem({
             >
               <ArrowUp
                 className={`h-4 w-4 ${
-                  comment.userVote === 1 ? "fill-primary text-primary" : ""
+                  comment.userVote === 1 ? "fill-green text-green" : ""
                 }`}
               />
             </Button>
@@ -645,7 +645,7 @@ function CommentItem({
             >
               <ArrowDown
                 className={`h-4 w-4 ${
-                  comment.userVote === -1 ? "fill-primary text-primary" : ""
+                  comment.userVote === -1 ? "fill-red text-red" : ""
                 }`}
               />
             </Button>

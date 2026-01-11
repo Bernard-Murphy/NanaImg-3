@@ -26,7 +26,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const USER_QUERY = gql`
-  query GetUser($username: String!) {
+  query GetUser($username: String!, $postsPage: Int, $postsLimit: Int, $albumsPage: Int, $albumsLimit: Int, $commentsPage: Int, $commentsLimit: Int) {
     user(username: $username) {
       id
       username
@@ -40,7 +40,7 @@ const USER_QUERY = gql`
       banned
       role
       karma
-      posts {
+      posts(page: $postsPage, limit: $postsLimit) {
         id
         name
         timestamp
@@ -50,7 +50,7 @@ const USER_QUERY = gql`
         commentCount
         karma
       }
-      albums {
+      albums(page: $albumsPage, limit: $albumsLimit) {
         id
         name
         timestamp
@@ -61,7 +61,7 @@ const USER_QUERY = gql`
           thumbnailUrl
         }
       }
-      comments {
+      comments(page: $commentsPage, limit: $commentsLimit) {
         id
         timestamp
         text
@@ -77,9 +77,20 @@ function UserPageClient() {
   const params = useParams();
   const username = params.username as string;
   const [tab, setTab] = useState("posts");
+  const [postsPage, setPostsPage] = useState(1);
+  const [albumsPage, setAlbumsPage] = useState(1);
+  const [commentsPage, setCommentsPage] = useState(1);
 
-  const { data, loading } = useQuery(USER_QUERY, {
-    variables: { username },
+  const { data, loading, refetch } = useQuery(USER_QUERY, {
+    variables: {
+      username,
+      postsPage,
+      postsLimit: 20,
+      albumsPage,
+      albumsLimit: 20,
+      commentsPage,
+      commentsLimit: 20,
+    },
   });
 
   const user = data?.user;
@@ -279,6 +290,41 @@ function UserPageClient() {
                     ))}
                   </div>
                 )}
+
+                {/* Posts Pagination */}
+                {user.posts.length > 0 && (
+                  <div className="flex justify-center gap-4 mt-4">
+                    <BouncyClick disabled={postsPage === 1}>
+                      <Button
+                        onClick={() => {
+                          setPostsPage((p) => Math.max(1, p - 1));
+                          refetch();
+                        }}
+                        disabled={postsPage === 1}
+                        variant="outline"
+                      >
+                        Previous
+                      </Button>
+                    </BouncyClick>
+
+                    <span className="flex items-center text-sm text-muted-foreground">
+                      Page {postsPage}
+                    </span>
+
+                    <BouncyClick disabled={user.posts.length < 20}>
+                      <Button
+                        onClick={() => {
+                          setPostsPage((p) => p + 1);
+                          refetch();
+                        }}
+                        disabled={user.posts.length < 20}
+                        variant="outline"
+                      >
+                        Next
+                      </Button>
+                    </BouncyClick>
+                  </div>
+                )}
               </motion.div>
             )}
             {tab === "albums" && (
@@ -340,6 +386,41 @@ function UserPageClient() {
                     ))}
                   </div>
                 )}
+
+                {/* Albums Pagination */}
+                {user.albums.length > 0 && (
+                  <div className="flex justify-center gap-4 mt-4">
+                    <BouncyClick disabled={albumsPage === 1}>
+                      <Button
+                        onClick={() => {
+                          setAlbumsPage((p) => Math.max(1, p - 1));
+                          refetch();
+                        }}
+                        disabled={albumsPage === 1}
+                        variant="outline"
+                      >
+                        Previous
+                      </Button>
+                    </BouncyClick>
+
+                    <span className="flex items-center text-sm text-muted-foreground">
+                      Page {albumsPage}
+                    </span>
+
+                    <BouncyClick disabled={user.albums.length < 20}>
+                      <Button
+                        onClick={() => {
+                          setAlbumsPage((p) => p + 1);
+                          refetch();
+                        }}
+                        disabled={user.albums.length < 20}
+                        variant="outline"
+                      >
+                        Next
+                      </Button>
+                    </BouncyClick>
+                  </div>
+                )}
               </motion.div>
             )}
             {tab === "comments" && (
@@ -379,6 +460,41 @@ function UserPageClient() {
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+
+                {/* Comments Pagination */}
+                {user.comments.length > 0 && (
+                  <div className="flex justify-center gap-4 mt-4">
+                    <BouncyClick disabled={commentsPage === 1}>
+                      <Button
+                        onClick={() => {
+                          setCommentsPage((p) => Math.max(1, p - 1));
+                          refetch();
+                        }}
+                        disabled={commentsPage === 1}
+                        variant="outline"
+                      >
+                        Previous
+                      </Button>
+                    </BouncyClick>
+
+                    <span className="flex items-center text-sm text-muted-foreground">
+                      Page {commentsPage}
+                    </span>
+
+                    <BouncyClick disabled={user.comments.length < 20}>
+                      <Button
+                        onClick={() => {
+                          setCommentsPage((p) => p + 1);
+                          refetch();
+                        }}
+                        disabled={user.comments.length < 20}
+                        variant="outline"
+                      >
+                        Next
+                      </Button>
+                    </BouncyClick>
                   </div>
                 )}
               </motion.div>

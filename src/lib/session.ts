@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { randomBytes } from 'crypto'
+import session from 'express-session'
+import ConnectPgSimple from 'connect-pg-simple'
 
 export interface AuthPayload {
   userId: number
@@ -44,5 +46,27 @@ export function verifyJWT(token: string): AuthPayload | null {
   } catch (error) {
     return null
   }
+}
+
+// Create session middleware for production server
+export function createSessionMiddleware() {
+  const PgSession = ConnectPgSimple(session)
+
+  return session({
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'feednana-session-secret-change-me',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    },
+  })
 }
 

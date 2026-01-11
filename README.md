@@ -91,6 +91,10 @@ The application will be available at `http://localhost:3000`.
 
 ### Building for Production
 
+Choose one of the following deployment options:
+
+#### Option 1: Next.js Built-in Server (Recommended)
+
 1. Build the application:
 
 ```bash
@@ -103,7 +107,27 @@ npm run build
 npm start
 ```
 
+The production application will be available at `http://localhost:2025`.
+
+#### Option 2: Custom Server (with WebSocket support for GraphQL subscriptions)
+
+If you need GraphQL subscriptions support, use the custom server:
+
+1. Build the application:
+
+```bash
+npm run build
+```
+
+2. Start the custom server:
+
+```bash
+node server.js
+```
+
 The production application will be available at `http://localhost:3000`.
+
+**Note**: The custom server requires additional environment variables for session management. Make sure `SESSION_SECRET` is set in your `.env` file.
 
 ## Project Structure
 

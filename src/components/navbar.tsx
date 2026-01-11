@@ -17,7 +17,13 @@ import BouncyClick from "@/components/ui/bouncy-click";
 import { AuthDialog } from "@/components/auth-dialog";
 import { LogIn, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { retract, normalize, transition_fast } from "@/lib/transitions";
+import {
+  retract,
+  normalize,
+  transition_fast,
+  fade_out_scale_1,
+  fade_out,
+} from "@/lib/transitions";
 
 export const ME_QUERY = gql`
   query Me {
@@ -40,11 +46,10 @@ const LOGOUT_MUTATION = gql`
 `;
 
 function NavbarContent() {
-  const { data, refetch } = useQuery(ME_QUERY);
+  const { data, refetch, loading } = useQuery(ME_QUERY);
   const [logout] = useMutation(LOGOUT_MUTATION);
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const user = data?.me;
 
   const handleLogout = async () => {
@@ -122,52 +127,74 @@ function NavbarContent() {
               </BouncyClick>
             </div>
 
-            {user ? (
-              <DropdownMenu>
-                <BouncyClick>
-                  <DropdownMenuTrigger>
-                    <Button
-                      variant="ghost"
-                      className="relative h-10 w-10 rounded-full"
-                    >
-                      <Avatar>
-                        {user.avatarFile && (
-                          <AvatarImage
-                            src={user.avatarFile.fileUrl}
-                            alt={user.username}
-                          />
-                        )}
-                        <AvatarFallback>
-                          {user.username[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                </BouncyClick>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem className="cursor-pointer" asChild>
-                    <Link href={`/u/${user.username}`}>Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer text-red-500"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {loading ? (
+              <div></div>
             ) : (
-              <BouncyClick>
-                <AuthDialog onSuccess={() => refetch()}>
-                  <Button variant="ghost">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Login/Register
-                  </Button>
-                </AuthDialog>
-              </BouncyClick>
+              <AnimatePresence mode="wait">
+                {user ? (
+                  <motion.div
+                    initial={fade_out}
+                    animate={normalize}
+                    exit={fade_out_scale_1}
+                    transition={transition_fast}
+                    key="user"
+                  >
+                    <DropdownMenu>
+                      <BouncyClick>
+                        <DropdownMenuTrigger>
+                          <Button
+                            variant="ghost"
+                            className="relative h-10 w-10 rounded-full"
+                          >
+                            <Avatar>
+                              {user.avatarFile && (
+                                <AvatarImage
+                                  src={user.avatarFile.fileUrl}
+                                  alt={user.username}
+                                />
+                              )}
+                              <AvatarFallback>
+                                {user.username[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </BouncyClick>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="cursor-pointer" asChild>
+                          <Link href={`/u/${user.username}`}>Profile</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" asChild>
+                          <Link href="/dashboard">Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-red-500"
+                          onClick={handleLogout}
+                        >
+                          Logout
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={fade_out}
+                    animate={normalize}
+                    exit={fade_out_scale_1}
+                    transition={transition_fast}
+                    key="login"
+                  >
+                    <BouncyClick>
+                      <AuthDialog onSuccess={() => refetch()}>
+                        <Button variant="ghost">
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Login/Register
+                        </Button>
+                      </AuthDialog>
+                    </BouncyClick>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             )}
           </div>
         </div>

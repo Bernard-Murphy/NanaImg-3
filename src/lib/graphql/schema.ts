@@ -15,9 +15,9 @@ export const typeDefs = gql`
     bio: String!
     banned: Boolean!
     role: String!
-    posts: [File!]!
-    albums: [Album!]!
-    comments: [Comment!]!
+    posts(page: Int, limit: Int): [File!]!
+    albums(page: Int, limit: Int): [Album!]!
+    comments(page: Int, limit: Int): [Comment!]!
     karma: Int!
   }
 
@@ -111,6 +111,14 @@ export const typeDefs = gql`
     replyCount: Int!
     karma: Int!
     userVote: Int
+  }
+
+  type CommentWithContent {
+    id: Int!
+    timestamp: DateTime!
+    flavor: String!
+    contentId: Int!
+    content: BrowseItem
   }
 
   type Vote {
@@ -222,6 +230,7 @@ export const typeDefs = gql`
     album(id: Int!): Album
     timeline(id: Int!): Timeline
     comment(id: Int!): Comment
+    comments(limit: Int, filter: String): [CommentWithContent!]!
     browse(
       page: Int
       limit: Int

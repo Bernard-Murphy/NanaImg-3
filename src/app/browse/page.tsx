@@ -121,6 +121,68 @@ const BROWSE_QUERY = gql`
   }
 `;
 
+const RECENT_COMMENTS_QUERY = gql`
+  query RecentComments($limit: Int, $filter: String) {
+    comments(limit: $limit, filter: $filter) {
+      id
+      timestamp
+      flavor
+      contentId
+      content {
+        ... on File {
+          id
+          name
+          fileName
+          timestamp
+          thumbnailUrl
+          mimeType
+          views
+          commentCount
+          karma
+          user {
+            username
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+        }
+        ... on Album {
+          id
+          name
+          timestamp
+          views
+          commentCount
+          karma
+          user {
+            username
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+          files {
+            thumbnailUrl
+            mimeType
+          }
+        }
+        ... on Timeline {
+          id
+          name
+          timestamp
+          views
+          commentCount
+          karma
+          user {
+            username
+          }
+          anonId
+          anonTextColor
+          anonTextBackground
+        }
+      }
+    }
+  }
+`;
+
 function BrowsePageContent() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("recent");
@@ -128,7 +190,13 @@ function BrowsePageContent() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  const { data, loading, refetch } = useQuery(BROWSE_QUERY, {
+  const isRecentCommentSort = sort === "recent-comment";
+
+  const {
+    data: browseData,
+    loading: browseLoading,
+    refetch: refetchBrowse,
+  } = useQuery(BROWSE_QUERY, {
     variables: {
       page,
       limit: 49,
@@ -136,7 +204,25 @@ function BrowsePageContent() {
       filter,
       search,
     },
+    skip: isRecentCommentSort, // Skip if using recent comment sort
   });
+
+  const {
+    data: commentsData,
+    loading: commentsLoading,
+    refetch: refetchComments,
+  } = useQuery(RECENT_COMMENTS_QUERY, {
+    variables: {
+      limit: 49 * page, // Fetch enough comments to cover pagination
+      filter,
+    },
+    skip: !isRecentCommentSort, // Skip if not using recent comment sort
+  });
+
+  // Use appropriate data and loading state
+  const data = isRecentCommentSort ? commentsData : browseData;
+  const loading = isRecentCommentSort ? commentsLoading : browseLoading;
+  const refetch = isRecentCommentSort ? refetchComments : refetchBrowse;
 
   const handleSearch = () => {
     setSearch(searchInput);
@@ -163,8 +249,24 @@ function BrowsePageContent() {
     refetch();
   };
 
-  const items = data?.browse?.items || [];
-  const hasMore = data?.browse?.hasMore || false;
+  let items = [];
+  let hasMore = false;
+
+  if (isRecentCommentSort) {
+    // For recent comment sort, extract content from comments and apply pagination
+    const allComments = data?.comments || [];
+    const allItems = allComments
+      .map((comment) => comment.content)
+      .filter(Boolean);
+    const startIndex = (page - 1) * 49;
+    const endIndex = startIndex + 49;
+    items = allItems.slice(startIndex, endIndex);
+    hasMore = allItems.length > endIndex;
+  } else {
+    // For other sorts, use the normal browse data
+    items = data?.browse?.items || [];
+    hasMore = data?.browse?.hasMore || false;
+  }
 
   return (
     <motion.div
@@ -295,6 +397,8 @@ function BrowsePageContent() {
               animate={normalize}
               exit={fade_out_scale_1}
               transition={transition_fast}
+              // key={"loaded" + sort + filter + search}
+              key="loaded"
             >
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                 {items.map((item: any) => (

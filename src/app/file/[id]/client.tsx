@@ -277,7 +277,7 @@ export default function FilePageClient() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleVote(1)}
-                    className={file.userVote === 1 ? "text-primary" : ""}
+                    className={file.userVote === 1 ? "text-green" : ""}
                   >
                     <ArrowUp className="h-5 w-5" />
                   </Button>
@@ -288,7 +288,7 @@ export default function FilePageClient() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleVote(-1)}
-                    className={file.userVote === -1 ? "text-primary" : ""}
+                    className={file.userVote === -1 ? "text-red" : ""}
                   >
                     <ArrowDown className="h-5 w-5" />
                   </Button>
