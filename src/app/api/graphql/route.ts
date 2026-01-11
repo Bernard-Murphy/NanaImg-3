@@ -80,7 +80,9 @@ const apolloHandlerPromise = startServerAndCreateNextHandler(server, {
     // Get persistent anonymous data from cookies
     const cookieHeader = headers.get?.("cookie");
     const anonData = getAnonDataFromCookies(cookieHeader);
-    const reqWithAnon = req as NextRequest & { anonData?: AnonymousData };
+    const reqWithAnon = (req as unknown) as NextRequest & {
+      anonData?: AnonymousData;
+    };
     reqWithAnon.anonData = anonData;
 
     return {

@@ -1198,7 +1198,7 @@ export const resolvers = {
             anonId,
             anonTextColor,
             anonTextBackground,
-            albumId: album?.id,
+            album: album ? { connect: { id: album.id } } : undefined,
             unlisted: isUnlisted,
           },
         });
