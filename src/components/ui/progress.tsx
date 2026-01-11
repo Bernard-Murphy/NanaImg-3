@@ -26,7 +26,8 @@ const Progress = React.forwardRef<
               ? undefined
               : `translateX(-${100 - (value || 0)}%)`,
           transitionDuration: value
-            ? `${0.6 - 0.6 * ((value || 0) / 100)}`
+            ? // ? `${0.6 - 0.6 * ((value || 0) / 100)}s`
+              `${0.6}s`
             : undefined,
         }}
       />

@@ -11,6 +11,22 @@ import {
 
 const server = createApolloServer();
 
+function decodeCookieValue(value: string): string {
+  let decoded = value;
+  try {
+    while (true) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) {
+        break;
+      }
+      decoded = next;
+    }
+  } catch (error) {
+    return value;
+  }
+  return decoded;
+}
+
 // Helper function to get or create anonymous data from cookies
 function getAnonDataFromCookies(cookieHeader: string | null): AnonymousData {
   if (!cookieHeader) {
@@ -30,9 +46,9 @@ function getAnonDataFromCookies(cookieHeader: string | null): AnonymousData {
 
   if (anonIdMatch && anonTextColorMatch && anonTextBackgroundMatch) {
     return {
-      anonId: decodeURIComponent(anonIdMatch[1]),
-      anonTextColor: decodeURIComponent(anonTextColorMatch[1]),
-      anonTextBackground: decodeURIComponent(anonTextBackgroundMatch[1]),
+      anonId: decodeCookieValue(anonIdMatch[1]),
+      anonTextColor: decodeCookieValue(anonTextColorMatch[1]),
+      anonTextBackground: decodeCookieValue(anonTextBackgroundMatch[1]),
     };
   }
 
@@ -64,9 +80,11 @@ const apolloHandlerPromise = startServerAndCreateNextHandler(server, {
     // Get persistent anonymous data from cookies
     const cookieHeader = headers.get?.("cookie");
     const anonData = getAnonDataFromCookies(cookieHeader);
+    const reqWithAnon = req as NextRequest & { anonData?: AnonymousData };
+    reqWithAnon.anonData = anonData;
 
     return {
-      req,
+      req: reqWithAnon,
       user,
       anonData,
     };
@@ -88,20 +106,19 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
     // Set anonymous data cookies for persistence
     const cookieHeader = req.headers.get("cookie");
-    const anonData = getAnonDataFromCookies(cookieHeader);
+    const storedAnonData =
+      (req as NextRequest & { anonData?: AnonymousData }).anonData ||
+      getAnonDataFromCookies(cookieHeader);
 
     // Set cookies with 30 day expiration to persist anonymous data
-    newResponse.cookies.set("anon-id", encodeURIComponent(anonData.anonId), {
+    newResponse.cookies.set("anon-id", storedAnonData.anonId, {
       path: "/",
       maxAge: 30 * 24 * 60 * 60, // 30 days
       httpOnly: false, // Allow client-side access
       sameSite: "lax",
     });
 
-    newResponse.cookies.set(
-      "anon-text-color",
-      encodeURIComponent(anonData.anonTextColor),
-      {
+    newResponse.cookies.set("anon-text-color", storedAnonData.anonTextColor, {
         path: "/",
         maxAge: 30 * 24 * 60 * 60, // 30 days
         httpOnly: false, // Allow client-side access
@@ -111,7 +128,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
     newResponse.cookies.set(
       "anon-text-background",
-      encodeURIComponent(anonData.anonTextBackground),
+      storedAnonData.anonTextBackground,
       {
         path: "/",
         maxAge: 30 * 24 * 60 * 60, // 30 days

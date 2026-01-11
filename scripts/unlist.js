@@ -3,8 +3,8 @@
 /**
  * Unlist Script
  *
- * This script takes an array of IDs and sets removed = 't' (true) for
- * files, albums, and timelines with those IDs in the database.
+ * This script takes an array of IDs and flags files, albums, and timelines as
+ * unlisted (without removing them) so they no longer appear on the browse page.
  *
  * Usage:
  * node scripts/unlist.js
@@ -43,10 +43,10 @@ async function unlistContent(ids) {
     const filesUpdated = await prisma.file.updateMany({
       where: {
         id: { in: ids },
-        removed: false, // Only update if not already removed
+        unlisted: false,
       },
       data: {
-        removed: true,
+        unlisted: true,
       },
     });
 
@@ -54,10 +54,10 @@ async function unlistContent(ids) {
     const albumsUpdated = await prisma.album.updateMany({
       where: {
         id: { in: ids },
-        removed: false, // Only update if not already removed
+        unlisted: false,
       },
       data: {
-        removed: true,
+        unlisted: true,
       },
     });
 
@@ -65,10 +65,11 @@ async function unlistContent(ids) {
     const timelinesUpdated = await prisma.timeline.updateMany({
       where: {
         id: { in: ids },
-        removed: false, // Only update if not already removed
+        removed: false,
+        unlisted: false,
       },
       data: {
-        removed: true,
+        unlisted: true,
       },
     });
 

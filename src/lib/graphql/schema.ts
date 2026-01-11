@@ -27,6 +27,7 @@ export const typeDefs = gql`
     manifesto: String!
     timestamp: DateTime!
     removed: Boolean!
+    unlisted: Boolean!
     userId: Int
     user: User
     anonId: String!
@@ -58,6 +59,7 @@ export const typeDefs = gql`
     anonTextBackground: String!
     views: Int!
     removed: Boolean!
+    unlisted: Boolean!
     manifesto: String!
     files: [File!]!
     comments: [Comment!]!
@@ -77,6 +79,7 @@ export const typeDefs = gql`
     anonTextBackground: String!
     views: Int!
     removed: Boolean!
+    unlisted: Boolean!
     manifesto: String!
     items: [TimelineItem!]!
     comments: [Comment!]!
@@ -284,6 +287,7 @@ export const typeDefs = gql`
       contentId: Int!
       text: String!
       repliesTo: Int
+      anonymous: Boolean
       recaptchaToken: String
     ): Comment!
     deleteComment(id: Int!): Boolean!

@@ -29,6 +29,7 @@ import {
   fade_out_scale_1,
   transition_fast,
 } from "@/lib/transitions";
+import Spinner from "@/components/ui/spinner";
 
 // const FILE_COUNT_QUERY = gql`
 //   query TotalFileCount {
@@ -325,6 +326,8 @@ function UploadPageContent() {
     }
   }, [files.length, setIsFileSelecting]);
 
+  const processing = uploading && !Boolean(files.find((f) => f.progress < 100));
+
   return (
     <motion.div
       initial={fade_out}
@@ -340,7 +343,10 @@ function UploadPageContent() {
         <div className="text-sm text-muted-foreground">Files Uploaded</div>
       </div> */}
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div
+        className="max-w-4xl mx-auto space-y-6 transition-opacity duration-200"
+        style={{ opacity: processing ? 0.666 : 1 }}
+      >
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Upload</h1>
           <div className="flex gap-2">
@@ -462,14 +468,17 @@ function UploadPageContent() {
                 <Button
                   onClick={handleSubmit}
                   disabled={uploading}
-                  className="w-full"
+                  className="w-full text-white"
                   size="lg"
                 >
-                  {uploading
-                    ? "Uploading..."
-                    : `Upload ${files.length} file${
-                        files.length > 1 ? "s" : ""
-                      }`}
+                  {uploading ? (
+                    <>
+                      <Spinner color="white" size="sm" className="mr-2" />
+                      {processing ? "Processing" : "Uploading"}
+                    </>
+                  ) : (
+                    `Upload ${files.length} file${files.length > 1 ? "s" : ""}`
+                  )}
                 </Button>
               </BouncyClick>
             </motion.div>

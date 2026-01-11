@@ -369,11 +369,13 @@ export const resolvers = {
       const search = (args.search || "").substring(0, 100); // Limit search string length
 
 
-      const where = { removed: false };
+      const baseWhere = { removed: false, unlisted: false };
+      const fileWhere = { ...baseWhere, albumId: null };
+      const albumWhere = baseWhere;
 
       if (filter === "files") {
         const files = await prisma.file.findMany({
-          where: { ...where, albumId: null },
+          where: fileWhere,
           orderBy: { timestamp: "desc" },
           skip,
           take: limit,
@@ -388,7 +390,7 @@ export const resolvers = {
 
       if (filter === "albums") {
         const albums = await prisma.album.findMany({
-          where,
+          where: albumWhere,
           orderBy: { timestamp: "desc" },
           skip,
           take: limit,
@@ -409,7 +411,7 @@ export const resolvers = {
 
       if (filter === "timelines") {
         const timelines = await prisma.timeline.findMany({
-          where,
+          where: baseWhere,
           orderBy: { timestamp: "desc" },
           skip,
           take: limit,
@@ -430,12 +432,12 @@ export const resolvers = {
 
       const [files, albums, timelines] = await Promise.all([
         prisma.file.findMany({
-          where: { ...where, albumId: null },
+          where: fileWhere,
           orderBy: { timestamp: "desc" },
           take: fetchLimit,
         }),
         prisma.album.findMany({
-          where,
+          where: albumWhere,
           orderBy: { timestamp: "desc" },
           take: fetchLimit,
           include: {
@@ -446,7 +448,7 @@ export const resolvers = {
           },
         }),
         prisma.timeline.findMany({
-          where,
+          where: baseWhere,
           orderBy: { timestamp: "desc" },
           take: fetchLimit,
           include: {
@@ -554,8 +556,8 @@ export const resolvers = {
             }
           }
 
-          // Only include if content exists and is not removed
-          if (content && !content.removed) {
+          // Only include if content exists and is not removed or unlisted
+          if (content && !content.removed && !content.unlisted) {
             return {
               id: comment.id,
               timestamp: comment.timestamp,
@@ -578,15 +580,19 @@ export const resolvers = {
 
       // TODO: Implement proper search with OR conditions
       // For now, search by name only to avoid TypeScript errors
-      const where = {
+      const baseWhere = {
         name: { contains: query, mode: "insensitive" as const },
         removed: false,
+        unlisted: false,
       };
+
+      const fileSearchWhere = baseWhere;
+      const albumSearchWhere = baseWhere;
 
       const files =
         filter === "all" || filter === "files"
           ? await prisma.file.findMany({
-              where: { ...where, removed: false },
+              where: fileSearchWhere,
               take: 20,
             })
           : [];
@@ -594,7 +600,7 @@ export const resolvers = {
       const albums =
         filter === "all" || filter === "albums"
           ? await prisma.album.findMany({
-              where: { ...where, removed: false },
+              where: albumSearchWhere,
               take: 20,
             })
           : [];
@@ -602,7 +608,7 @@ export const resolvers = {
       const timelines =
         filter === "all" || filter === "timelines"
           ? await prisma.timeline.findMany({
-              where: { ...where, removed: false },
+              where: baseWhere,
               take: 20,
             })
           : [];
@@ -768,7 +774,7 @@ export const resolvers = {
 
       if (type === "all" || type === "files") {
         const files = await prisma.file.findMany({
-          where: { userId, removed: false, albumId: null },
+          where: { userId, removed: false, albumId: null, unlisted: false },
           orderBy: { timestamp: "desc" },
           skip: type === "files" ? skip : 0,
           take: limit,
@@ -778,7 +784,7 @@ export const resolvers = {
 
       if (type === "all" || type === "albums") {
         const albums = await prisma.album.findMany({
-          where: { userId, removed: false },
+          where: { userId, removed: false, unlisted: false },
           orderBy: { timestamp: "desc" },
           skip: type === "albums" ? skip : 0,
           take: limit,
@@ -812,7 +818,7 @@ export const resolvers = {
     },
 
     totalFileCount: async () => {
-      return prisma.file.count({ where: { removed: false } });
+      return prisma.file.count({ where: { removed: false, unlisted: false } });
     },
   },
 
@@ -1115,9 +1121,12 @@ export const resolvers = {
       const { uploads, name, manifesto, disableComments, unlisted, anonymous } =
         args;
 
+      const isUnlisted = Boolean(unlisted);
+
       const defaultName = name;
 
       const userId = anonymous ? null : context.user?.userId || null;
+      const userConnect = userId ? { connect: { id: userId } } : undefined;
       const { anonId, anonTextColor, anonTextBackground } = context.anonData;
 
       let album = null;
@@ -1128,10 +1137,11 @@ export const resolvers = {
           data: {
             name: defaultName,
             manifesto: manifesto || "",
-            userId,
+            user: userConnect,
             anonId,
             anonTextColor,
             anonTextBackground,
+            unlisted: isUnlisted,
           },
         });
       }
@@ -1184,11 +1194,12 @@ export const resolvers = {
             hashedFileName,
             fileUrl,
             thumbnailUrl,
-            userId,
+            user: userConnect,
             anonId,
             anonTextColor,
             anonTextBackground,
             albumId: album?.id,
+            unlisted: isUnlisted,
           },
         });
 
@@ -1224,7 +1235,7 @@ export const resolvers = {
         }
       }
 
-      const { flavor, contentId, text, repliesTo } = args;
+      const { flavor, contentId, text, repliesTo, anonymous } = args;
 
       if (text.length > 1000) {
         throw new Error("Comment must be 1000 characters or less");
@@ -1275,7 +1286,7 @@ export const resolvers = {
         }
       }
 
-      const userId = context.user?.userId || null;
+      const userId = anonymous ? null : context.user?.userId || null;
       const { anonId, anonTextColor, anonTextBackground } = context.anonData;
 
       // Create comment within a transaction to ensure atomicity

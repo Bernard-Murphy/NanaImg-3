@@ -37,6 +37,7 @@ model File {
   manifesto          String   @default("")
   timestamp          DateTime @default(now())
   removed            Boolean  @default(false)
+  unlisted           Boolean  @default(false)
   userId             Int?
   anonId             String
   anonTextColor      String
@@ -67,6 +68,7 @@ model Album {
   anonTextBackground String
   views              Int      @default(0)
   removed            Boolean  @default(false)
+  unlisted           Boolean  @default(false)
   manifesto          String   @default("")
   user               User?    @relation(fields: [userId], references: [id])
   files              File[]
@@ -86,6 +88,7 @@ model Timeline {
   anonTextBackground String
   views              Int            @default(0)
   removed            Boolean        @default(false)
+  unlisted           Boolean        @default(false)
   manifesto          String         @default("")
   modLogs            ModLog[]       @relation("TimelineModLogs")
   reports            Report[]       @relation("TimelineReports")

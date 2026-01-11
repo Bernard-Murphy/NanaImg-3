@@ -215,6 +215,7 @@ const CREATE_COMMENT_MUTATION = gql`
     $text: String!
     $repliesTo: Int
     $recaptchaToken: String
+    $anonymous: Boolean
   ) {
     createComment(
       flavor: $flavor
@@ -222,6 +223,7 @@ const CREATE_COMMENT_MUTATION = gql`
       text: $text
       repliesTo: $repliesTo
       recaptchaToken: $recaptchaToken
+      anonymous: $anonymous
     ) {
       id
     }
@@ -352,6 +354,7 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
           text: data.text,
           repliesTo: replyTo,
           recaptchaToken,
+          anonymous: postAnonymously,
         },
       });
 
