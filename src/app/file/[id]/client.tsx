@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
@@ -88,6 +89,7 @@ export default function FilePageClient() {
   const params = useParams();
   const router = useRouter();
   const fileId = parseInt(params.id as string);
+  const [missingRefetchAttempts, setMissingRefetchAttempts] = useState(0);
 
   const { data, loading, error, refetch } = useQuery(FILE_QUERY, {
     variables: { id: fileId },
@@ -100,6 +102,25 @@ export default function FilePageClient() {
   const [vote] = useMutation(VOTE_MUTATION);
 
   const file = data?.file;
+
+  useEffect(() => {
+    setMissingRefetchAttempts(0);
+  }, [fileId]);
+
+  useEffect(() => {
+    if (
+      !loading &&
+      !file &&
+      !error &&
+      missingRefetchAttempts < 3
+    ) {
+      const timer = setTimeout(() => {
+        setMissingRefetchAttempts((prev) => prev + 1);
+        refetch();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, file, error, missingRefetchAttempts, refetch]);
 
   const handleVote = async (voteValue: number) => {
     if (!meData?.me) {
