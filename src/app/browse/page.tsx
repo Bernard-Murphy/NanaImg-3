@@ -269,11 +269,7 @@ function BrowsePageContent() {
   }
 
   return (
-    <motion.div
-      initial={fade_out}
-      animate={normalize}
-      exit={fade_out_scale_1}
-      transition={transition}
+    <div
       className="container mx-auto px-4 py-8"
     >
       <div className="max-w-7xl mx-auto space-y-6">
@@ -454,7 +450,7 @@ function BrowsePageContent() {
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
