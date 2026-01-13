@@ -245,7 +245,9 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <PageTransition>
-            <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">
+              {children}
+            </main>
           </PageTransition>
         </Providers>
       </body>

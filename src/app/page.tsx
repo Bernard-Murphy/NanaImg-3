@@ -329,11 +329,7 @@ function UploadPageContent() {
   const processing = uploading && !Boolean(files.find((f) => f.progress < 100));
 
   return (
-    <motion.div
-      initial={fade_out}
-      animate={normalize}
-      exit={fade_out_scale_1}
-      transition={transition_fast}
+    <div
       className="container mx-auto px-4 py-8"
     >
       {/* <div className="absolute bottom-20 right-4 bg-card p-4 rounded-lg border">
@@ -562,7 +558,7 @@ function UploadPageContent() {
           Created by Bernard Murphy
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
