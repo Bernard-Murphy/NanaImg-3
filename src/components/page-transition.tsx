@@ -43,7 +43,7 @@ export function PageTransition({ children }: PageTransitionProps) {
         exit={fade_out_scale_1}
         transition={transition_fast}
       >
-        {children}
+        <FrozenRouter>{children}</FrozenRouter>
       </motion.div>
     </AnimatePresence>
   );
