@@ -22,13 +22,6 @@ import { CopeSection } from "@/components/cope-section";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import BouncyClick from "@/components/ui/bouncy-click";
-import { motion } from "framer-motion";
-import {
-  fade_out,
-  normalize,
-  fade_out_scale_1,
-  transition,
-} from "@/lib/transitions";
 import Counter from "@/components/ui/counter";
 
 const FILE_QUERY = gql`
@@ -88,7 +81,7 @@ const ME_QUERY = gql`
 export default function FilePageClient() {
   const params = useParams();
   const router = useRouter();
-  const fileId = parseInt(params.id as string);
+  const [fileId] = useState(parseInt(params.id as string));
   const [missingRefetchAttempts, setMissingRefetchAttempts] = useState(0);
 
   const { data, loading, error, refetch } = useQuery(FILE_QUERY, {
@@ -108,12 +101,7 @@ export default function FilePageClient() {
   }, [fileId]);
 
   useEffect(() => {
-    if (
-      !loading &&
-      !file &&
-      !error &&
-      missingRefetchAttempts < 3
-    ) {
+    if (!loading && !file && !error && missingRefetchAttempts < 3) {
       const timer = setTimeout(() => {
         setMissingRefetchAttempts((prev) => prev + 1);
         refetch();
@@ -208,13 +196,7 @@ export default function FilePageClient() {
   const isAnon = !file.user;
 
   return (
-    <motion.div
-      initial={fade_out}
-      animate={normalize}
-      exit={fade_out_scale_1}
-      transition={transition}
-      className="container mx-auto px-4 py-8"
-    >
+    <div className="container mx-auto px-4 py-8">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Navigation */}
         <div className="flex justify-between items-center">
@@ -418,6 +400,6 @@ export default function FilePageClient() {
         {/* Comments */}
         <CopeSection flavor="file" contentId={fileId} />
       </div>
-    </motion.div>
+    </div>
   );
 }
