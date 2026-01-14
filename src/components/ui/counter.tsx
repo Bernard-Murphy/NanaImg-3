@@ -21,6 +21,7 @@ export interface CountProps {
 }
 
 export default function AnimatedCount({ count, fraction, max }: CountProps) {
+  return <></>;
   const [currentCount, setCurrentCount] = useState<number>(count);
   const [entrance, setEntrance] = useState<TargetAndTransition>({ opacity: 0 });
   const [exit, setExit] = useState<TargetAndTransition>({ opacity: 0 });
@@ -108,7 +109,7 @@ export default function AnimatedCount({ count, fraction, max }: CountProps) {
   ).split("");
 
   return (
-    <div className="flex overflow-hidden">
+    <div className="flex overflow-hidden" key={String(split.length)}>
       {split.map((char, index) => {
         return (
           <AnimatePresence mode="wait" key={String(char)}>
