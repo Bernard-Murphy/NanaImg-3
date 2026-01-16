@@ -226,8 +226,10 @@ export default function AlbumPageClient() {
   };
 
   const copyLink = (bb?: boolean, all?: boolean) => {
-    if (all) {
-      let toCopy = album.files
+    let toCopy = "";
+    try {
+      if (all) {
+      toCopy = album.files
         .filter((file) => {
           if (bb) return file.mimeType.startsWith("image/");
           return true;
@@ -237,13 +239,54 @@ export default function AlbumPageClient() {
           return file.fileUrl;
         })
         .join("\n");
-      navigator.clipboard.writeText(toCopy);
       toast.success(`${bb ? "BBCode" : "Links"} copied to clipboard`);
     } else {
-      let toCopy = selectedFile.fileUrl;
+      toCopy = selectedFile.fileUrl;
       if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
-      navigator.clipboard.writeText(toCopy);
       toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
+    }
+    let textarea;
+    let result;
+
+    try {
+      textarea = document.createElement("textarea");
+      textarea.setAttribute("readonly", true);
+      textarea.setAttribute("contenteditable", true);
+      textarea.style.position = "fixed";
+      textarea.value = toCopy;
+
+      document.body.appendChild(textarea);
+
+      textarea.focus();
+      textarea.select();
+
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      textarea.setSelectionRange(0, textarea.value.length);
+      result = document.execCommand("copy");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to copy link(s) to clipboard");
+      result = null;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+
+    if (!result) {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const copyHotkey = isMac ? "⌘C" : "CTRL+C";
+      result = prompt(`Press ${copyHotkey}`, toCopy); // eslint-disable-line no-alert
+      if (!result) {
+        return false;
+      }
+    }
+    } catch(err){
+      toast.error("Failed to copy link(s) to clipboard");
     }
   };
 
