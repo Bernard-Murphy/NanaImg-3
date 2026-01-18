@@ -21,7 +21,6 @@ export interface CountProps {
 }
 
 export default function AnimatedCount({ count, fraction, max }: CountProps) {
-  return <></>;
   const [currentCount, setCurrentCount] = useState<number>(count);
   const [entrance, setEntrance] = useState<TargetAndTransition>({ opacity: 0 });
   const [exit, setExit] = useState<TargetAndTransition>({ opacity: 0 });
