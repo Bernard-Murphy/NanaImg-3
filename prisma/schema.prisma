@@ -110,6 +110,7 @@ model TimelineItem {
   description String              @default("")
   startDate   DateTime
   endDate     DateTime?
+  color       String              @default("#3b82f6")
   timeline    Timeline            @relation(fields: [timelineId], references: [id], onDelete: Cascade)
   files       TimelineItemFile[]
   albums      TimelineItemAlbum[]

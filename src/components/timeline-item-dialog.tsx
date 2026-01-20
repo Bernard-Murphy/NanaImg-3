@@ -48,6 +48,7 @@ const TIMELINE_ITEM_QUERY = gql`
       description
       startDate
       endDate
+      color
       files {
         id
         name
@@ -170,6 +171,8 @@ interface TimelineItemDialogProps {
   item?: any;
   canEdit: boolean;
   onSuccess: () => void;
+  allTimelineItems?: any[];
+  onNavigateToItem?: (item: any) => void;
 }
 
 interface FileWithProgress {
@@ -185,10 +188,20 @@ export default function TimelineItemDialog({
   item,
   canEdit,
   onSuccess,
+  allTimelineItems = [],
+  onNavigateToItem,
 }: TimelineItemDialogProps) {
   const [isEditMode, setIsEditMode] = useState(!item);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [dialogMotion, setDialogMotion] = useState({ enter: { x: 0 }, exit: { x: 0 } });
+
+  // Sort timeline items by date and find current item index
+  const sortedTimelineItems = [...allTimelineItems].sort((a, b) =>
+    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+  const currentItemIndex = item ? sortedTimelineItems.findIndex(i => i.id === item.id) : -1;
+  const hasPrevItem = currentItemIndex > 0;
+  const hasNextItem = currentItemIndex >= 0 && currentItemIndex < sortedTimelineItems.length - 1;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -478,6 +491,22 @@ export default function TimelineItemDialog({
     }
   };
 
+  const goToPreviousItem = () => {
+    if (hasPrevItem && onNavigateToItem) {
+      const prevItem = sortedTimelineItems[currentItemIndex - 1];
+      onNavigateToItem(prevItem);
+      setSelectedFileIndex(0); // Reset file index when changing items
+    }
+  };
+
+  const goToNextItem = () => {
+    if (hasNextItem && onNavigateToItem) {
+      const nextItem = sortedTimelineItems[currentItemIndex + 1];
+      onNavigateToItem(nextItem);
+      setSelectedFileIndex(0); // Reset file index when changing items
+    }
+  };
+
   const selectedFile = allFiles[selectedFileIndex];
 
   return (
@@ -631,8 +660,8 @@ export default function TimelineItemDialog({
                     id="timeline-item-dropzone"
                     onClick={handleSelectFiles}
                     className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
-                        ? "border-primary bg-primary/10"
-                        : "border-muted-foreground/25"
+                      ? "border-primary bg-primary/10"
+                      : "border-muted-foreground/25"
                       }`}
                   >
                     <p className="text-sm text-muted-foreground">
@@ -736,6 +765,11 @@ export default function TimelineItemDialog({
                   {formatDate(currentItem?.startDate)}
                   {currentItem?.endDate && ` - ${formatDate(currentItem.endDate)}`}
                 </p>
+                {sortedTimelineItems.length > 0 && currentItemIndex >= 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Item {currentItemIndex + 1} of {sortedTimelineItems.length}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2">
                 {canEdit && (
@@ -759,6 +793,34 @@ export default function TimelineItemDialog({
                 </Button>
               </div>
             </div>
+
+            {/* Timeline Item Navigation */}
+            {sortedTimelineItems.length > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <BouncyClick disabled={!hasPrevItem}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousItem}
+                    disabled={!hasPrevItem}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                </BouncyClick>
+                <BouncyClick disabled={!hasNextItem}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextItem}
+                    disabled={!hasNextItem}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </BouncyClick>
+              </div>
+            )}
 
             {currentItem?.description && (
               <div className="prose prose-sm max-w-none dark:prose-invert">

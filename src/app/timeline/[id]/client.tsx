@@ -59,6 +59,7 @@ const TIMELINE_QUERY = gql`
         description
         startDate
         endDate
+        color
         files {
           id
           thumbnailUrl
@@ -272,7 +273,7 @@ export default function TimelinePageClient() {
                     <p className="text-muted-foreground">
                       {timeline.items?.length === 0
                         ? "No timeline items yet. Click 'Add Item' to get started"
-                        : "No items in the selected date range."}
+                        : "No timeline items found in this date range"}
                     </p>
                   </div>
                 )}
@@ -552,6 +553,8 @@ export default function TimelinePageClient() {
                     setShowAddItem(false);
                     setSelectedItem(null);
                   }}
+                  allTimelineItems={timeline.items || []}
+                  onNavigateToItem={setSelectedItem}
                 />
               )}
             </motion.div>

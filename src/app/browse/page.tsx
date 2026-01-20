@@ -161,6 +161,7 @@ const RECENT_COMMENTS_QUERY = gql`
         ... on Timeline {
           id
           name
+          manifesto
           timestamp
           views
           commentCount
@@ -522,6 +523,12 @@ function BrowseItem({ item }: { item: any }) {
               <div className="text-sm font-medium truncate">
                 {getDisplayName(item)}
               </div>
+
+              {isTimeline && item.manifesto && (
+                <div className="text-xs text-muted-foreground line-clamp-2">
+                  {item.manifesto.replace(/[#*_`[\]]/g, '').substring(0, 100)}
+                </div>
+              )}
 
               <div className="text-xs text-muted-foreground">
                 {isAnon ? (

@@ -8,6 +8,7 @@ interface TimelineRibbonProps {
     id: number;
     startDate: string;
     endDate?: string | null;
+    color: string;
   }>;
   onDateRangeChange: (range: { start: Date; end: Date } | null) => void;
 }
@@ -17,6 +18,7 @@ export default function TimelineRibbon({
   onDateRangeChange,
 }: TimelineRibbonProps) {
   const ribbonRef = useRef<HTMLDivElement>(null);
+  const [initialized, setInitialized] = useState(false);
   const [lensPosition, setLensPosition] = useState(0); // 0-100 percentage
   const [lensWidth, setLensWidth] = useState(30); // percentage
   const [isDragging, setIsDragging] = useState(false);
@@ -54,6 +56,23 @@ export default function TimelineRibbon({
         ),
       }
     : null;
+
+  // Initialize lens to cover at least one item
+  useEffect(() => {
+    if (!initialized && items.length > 0 && paddedDateRange) {
+      // Find the first item position
+      const firstItem = items[0];
+      const start = new Date(firstItem.startDate);
+      const totalTime = paddedDateRange.max.getTime() - paddedDateRange.min.getTime();
+      const itemTime = start.getTime() - paddedDateRange.min.getTime();
+      const itemPercent = (itemTime / totalTime) * 100;
+      
+      // Center the lens on the first item
+      const newPos = Math.max(0, Math.min(70, itemPercent - 15));
+      setLensPosition(newPos);
+      setInitialized(true);
+    }
+  }, [items, paddedDateRange, initialized]);
 
   // Calculate visible date range based on lens position
   useEffect(() => {
@@ -160,13 +179,28 @@ export default function TimelineRibbon({
     };
   });
 
-  // Calculate item positions
+  // Calculate item positions and widths
   const itemPositions = items.map((item) => {
     const start = new Date(item.startDate);
+    const end = item.endDate ? new Date(item.endDate) : null;
     const totalTime = paddedDateRange.max.getTime() - paddedDateRange.min.getTime();
-    const itemTime = start.getTime() - paddedDateRange.min.getTime();
-    const percent = (itemTime / totalTime) * 100;
-    return { id: item.id, percent: Math.max(0, Math.min(100, percent)) };
+    const itemStartTime = start.getTime() - paddedDateRange.min.getTime();
+    const startPercent = (itemStartTime / totalTime) * 100;
+    
+    let width = 0;
+    if (end) {
+      const itemEndTime = end.getTime() - paddedDateRange.min.getTime();
+      const endPercent = (itemEndTime / totalTime) * 100;
+      width = endPercent - startPercent;
+    }
+    
+    return { 
+      id: item.id, 
+      startPercent: Math.max(0, Math.min(100, startPercent)),
+      width: Math.max(0, width),
+      color: item.color,
+      hasEndDate: !!end
+    };
   });
 
   return (
@@ -177,11 +211,32 @@ export default function TimelineRibbon({
           <div className="absolute inset-x-0 top-8 h-2 bg-muted rounded-full">
             {/* Item markers */}
             {itemPositions.map((pos) => (
-              <div
-                key={pos.id}
-                className="absolute w-2 h-2 bg-primary rounded-full -translate-x-1/2"
-                style={{ left: `${pos.percent}%`, top: "0" }}
-              />
+              pos.hasEndDate ? (
+                // Date range - render as a bar
+                <div
+                  key={pos.id}
+                  className="absolute h-2 rounded-full"
+                  style={{ 
+                    left: `${pos.startPercent}%`, 
+                    width: `${pos.width}%`,
+                    backgroundColor: pos.color,
+                    opacity: 0.6,
+                    top: "0"
+                  }}
+                />
+              ) : (
+                // Single date - render as a dot
+                <div
+                  key={pos.id}
+                  className="absolute w-2 h-2 rounded-full -translate-x-1/2"
+                  style={{ 
+                    left: `${pos.startPercent}%`, 
+                    backgroundColor: pos.color,
+                    opacity: 0.6,
+                    top: "0" 
+                  }}
+                />
+              )
             ))}
           </div>
 

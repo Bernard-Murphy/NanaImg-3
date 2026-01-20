@@ -99,6 +99,7 @@ export const typeDefs = gql`
     description: String!
     startDate: DateTime!
     endDate: DateTime
+    color: String!
     timeline: Timeline!
     files: [File!]!
     albums: [Album!]!
@@ -349,6 +350,7 @@ export const typeDefs = gql`
       description: String
       startDate: DateTime!
       endDate: DateTime
+      color: String
       fileIds: [Int!]
       albumIds: [Int!]
     ): TimelineItem!

@@ -14,6 +14,14 @@ import {
 import { generateThumbnail } from "../thumbnail";
 import { generateAnonId, generateRandomColor, signJWT } from "../session";
 
+const TIMELINE_COLORS = [
+  '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
+  '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1', '#a855f7', '#d946ef',
+  '#f43f5e', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8',
+  '#c084fc', '#e879f9', '#fb7185', '#dc2626', '#ea580c', '#ca8a04', '#65a30d', '#16a34a',
+  '#0d9488', '#0284c7', '#4f46e5', '#9333ea',
+];
+
 const pubsub = new PubSub();
 
 const BROWSE_ITEMS_UPDATED = "BROWSE_ITEMS_UPDATED";
@@ -1987,6 +1995,7 @@ export const resolvers = {
         description,
         startDate,
         endDate,
+        color,
         fileIds,
         albumIds,
       } = args;
@@ -2022,6 +2031,7 @@ export const resolvers = {
       }
 
       // Create timeline item
+      const selectedColor = color || TIMELINE_COLORS[Math.floor(Math.random() * TIMELINE_COLORS.length)];
       const timelineItem = await prisma.timelineItem.create({
         data: {
           timelineId,
@@ -2029,6 +2039,7 @@ export const resolvers = {
           description: description || "",
           startDate: new Date(startDate),
           endDate: endDate ? new Date(endDate) : null,
+          color: selectedColor,
         },
       });
 
