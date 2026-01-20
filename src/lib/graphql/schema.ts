@@ -82,6 +82,9 @@ export const typeDefs = gql`
     unlisted: Boolean!
     manifesto: String!
     items: [TimelineItem!]!
+    contributors: [TimelineContributor!]!
+    itemCount: Int!
+    canEdit: Boolean!
     comments: [Comment!]!
     commentCount: Int!
     karma: Int!
@@ -92,8 +95,22 @@ export const typeDefs = gql`
     id: Int!
     timelineId: Int!
     timestamp: DateTime!
-    positionStart: Int
-    positionEnd: Int
+    title: String
+    description: String!
+    startDate: DateTime!
+    endDate: DateTime
+    timeline: Timeline!
+    files: [File!]!
+    albums: [Album!]!
+  }
+
+  type TimelineContributor {
+    id: Int!
+    timelineId: Int!
+    userId: Int!
+    timestamp: DateTime!
+    timeline: Timeline!
+    user: User!
   }
 
   type Comment {
@@ -232,6 +249,7 @@ export const typeDefs = gql`
     file(id: Int!): File
     album(id: Int!): Album
     timeline(id: Int!): Timeline
+    timelineItem(id: Int!): TimelineItem
     comment(id: Int!): Comment
     comments(limit: Int, filter: String): [CommentWithContent!]!
     browse(
@@ -311,6 +329,42 @@ export const typeDefs = gql`
     updateAlbum(id: Int!, name: String, manifesto: String): Album!
     deleteFile(id: Int!): Boolean!
     deleteAlbum(id: Int!): Boolean!
+    
+    createTimeline(
+      name: String
+      manifesto: String
+      unlisted: Boolean
+      anonymous: Boolean
+    ): Timeline!
+    updateTimeline(
+      id: Int!
+      name: String
+      manifesto: String
+    ): Timeline!
+    deleteTimeline(id: Int!): Boolean!
+    
+    createTimelineItem(
+      timelineId: Int!
+      title: String
+      description: String
+      startDate: DateTime!
+      endDate: DateTime
+      fileIds: [Int!]
+      albumIds: [Int!]
+    ): TimelineItem!
+    updateTimelineItem(
+      id: Int!
+      title: String
+      description: String
+      startDate: DateTime
+      endDate: DateTime
+      fileIds: [Int!]
+      albumIds: [Int!]
+    ): TimelineItem!
+    deleteTimelineItem(id: Int!): Boolean!
+    
+    addTimelineContributor(timelineId: Int!, userId: Int!): TimelineContributor!
+    removeTimelineContributor(timelineId: Int!, userId: Int!): Boolean!
   }
 
   input CompleteUploadInput {
