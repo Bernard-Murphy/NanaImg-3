@@ -229,63 +229,63 @@ export default function AlbumPageClient() {
     let toCopy = "";
     try {
       if (all) {
-      toCopy = album.files
-        .filter((file) => {
-          if (bb) return file.mimeType.startsWith("image/");
-          return true;
-        })
-        .map((file: any) => {
-          if (bb) return `[IMG]${file.fileUrl}[/IMG]`;
-          return file.fileUrl;
-        })
-        .join("\n");
-      toast.success(`${bb ? "BBCode" : "Links"} copied to clipboard`);
-    } else {
-      toCopy = selectedFile.fileUrl;
-      if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
-      toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
-    }
-    let textarea;
-    let result;
-
-    try {
-      textarea = document.createElement("textarea");
-      textarea.setAttribute("readonly", true);
-      textarea.setAttribute("contenteditable", true);
-      textarea.style.position = "fixed";
-      textarea.value = toCopy;
-
-      document.body.appendChild(textarea);
-
-      textarea.focus();
-      textarea.select();
-
-      const range = document.createRange();
-      range.selectNodeContents(textarea);
-
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-
-      textarea.setSelectionRange(0, textarea.value.length);
-      result = document.execCommand("copy");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to copy link(s) to clipboard");
-      result = null;
-    } finally {
-      document.body.removeChild(textarea);
-    }
-
-    if (!result) {
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-      const copyHotkey = isMac ? "⌘C" : "CTRL+C";
-      result = prompt(`Press ${copyHotkey}`, toCopy); // eslint-disable-line no-alert
-      if (!result) {
-        return false;
+        toCopy = album.files
+          .filter((file) => {
+            if (bb) return file.mimeType.startsWith("image/");
+            return true;
+          })
+          .map((file: any) => {
+            if (bb) return `[IMG]${file.fileUrl}[/IMG]`;
+            return file.fileUrl;
+          })
+          .join("\n");
+        toast.success(`${bb ? "BBCode" : "Links"} copied to clipboard`);
+      } else {
+        toCopy = selectedFile.fileUrl;
+        if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
+        toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
       }
-    }
-    } catch(err){
+      let textarea;
+      let result;
+
+      try {
+        textarea = document.createElement("textarea");
+        textarea.setAttribute("readonly", true);
+        textarea.setAttribute("contenteditable", true);
+        textarea.style.position = "fixed";
+        textarea.value = toCopy;
+
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+
+        const range = document.createRange();
+        range.selectNodeContents(textarea);
+
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        textarea.setSelectionRange(0, textarea.value.length);
+        result = document.execCommand("copy");
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to copy link(s) to clipboard");
+        result = null;
+      } finally {
+        document.body.removeChild(textarea);
+      }
+
+      if (!result) {
+        const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        const copyHotkey = isMac ? "⌘C" : "CTRL+C";
+        result = prompt(`Press ${copyHotkey}`, toCopy); // eslint-disable-line no-alert
+        if (!result) {
+          return false;
+        }
+      }
+    } catch (err) {
       toast.error("Failed to copy link(s) to clipboard");
     }
   };
@@ -394,9 +394,8 @@ export default function AlbumPageClient() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleVote(1)}
-                          className={album.userVote === 1 ? "text-primary" : ""}
                         >
-                          <ArrowUp className="h-5 w-5" />
+                          <ArrowUp className={`h-5 w-5 ${album.userVote === 1 ? "text-green-500" : ""}`} />
                         </Button>
                       </BouncyClick>
                       <span className="text-xl font-bold">
@@ -407,11 +406,8 @@ export default function AlbumPageClient() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleVote(-1)}
-                          className={
-                            album.userVote === -1 ? "text-primary" : ""
-                          }
                         >
-                          <ArrowDown className="h-5 w-5" />
+                          <ArrowDown className={`h-5 w-5 ${album.userVote === -1 ? "text-red-500" : ""}`} />
                         </Button>
                       </BouncyClick>
                     </div>
@@ -445,16 +441,16 @@ export default function AlbumPageClient() {
                       file.mimeType.startsWith("image/")
                     )
                   ) && (
-                    <BouncyClick>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyLink(true, true)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        BBCodes
-                      </Button>
-                    </BouncyClick>
-                  )}
+                      <BouncyClick>
+                        <Button
+                          variant="outline"
+                          onClick={() => copyLink(true, true)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          BBCodes
+                        </Button>
+                      </BouncyClick>
+                    )}
                 </div>
               </div>
               {/* File Grid */}

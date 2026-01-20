@@ -309,68 +309,64 @@ export default function TimelinePageClient() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex justify-between">
                       <div>
-                      <h1 className="text-2xl font-bold mb-2">
-                        {timeline.name || "Untitled Timeline"}
-                      </h1>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                        <div>
-                          {timeline.user ? (
-                            <Link
-                              href={`/u/${timeline.user.username}`}
-                              className="hover:underline"
-                            >
-                              {timeline.user.username}
-                            </Link>
-                          ) : (
-                            <>
-                              Anon{" "}
-                              <span
-                                className="px-2 py-1 rounded text-xs font-medium"
-                                style={{
-                                  color: timeline.anonTextColor,
-                                  backgroundColor: timeline.anonTextBackground,
-                                }}
+                        <h1 className="text-2xl font-bold mb-2">
+                          {timeline.name || "Untitled Timeline"}
+                        </h1>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                          <div>
+                            {timeline.user ? (
+                              <Link
+                                href={`/u/${timeline.user.username}`}
+                                className="hover:underline"
                               >
-                                {timeline.anonId}
-                              </span>
-                            </>
-                          )}
+                                {timeline.user.username}
+                              </Link>
+                            ) : (
+                              <>
+                                Anon{" "}
+                                <span
+                                  className="px-2 py-1 rounded text-xs font-medium"
+                                  style={{
+                                    color: timeline.anonTextColor,
+                                    backgroundColor: timeline.anonTextBackground,
+                                  }}
+                                >
+                                  {timeline.anonId}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div>{formatDate(timeline.timestamp)}</div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            <Counter count={timeline.views} />
+                          </div>
                         </div>
-                        <div>{formatDate(timeline.timestamp)}</div>
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          <Counter count={timeline.views} />
-                        </div>
+
                       </div>
-  
-                    </div>
-                                        <div className="flex flex-col items-center gap-2">
-                      <BouncyClick>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleVote(1)}
-                          className={timeline.userVote === 1 ? "text-primary" : ""}
-                        >
-                          <ArrowUp className="h-5 w-5" />
-                        </Button>
-                      </BouncyClick>
-                      <span className="text-xl font-bold">
-                        <Counter count={timeline.karma} />
-                      </span>
-                      <BouncyClick>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleVote(-1)}
-                          className={
-                            timeline.userVote === -1 ? "text-primary" : ""
-                          }
-                        >
-                          <ArrowDown className="h-5 w-5" />
-                        </Button>
-                      </BouncyClick>
-                    </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <BouncyClick>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleVote(1)}
+                          >
+                            <ArrowUp className={`h-5 w-5 ${timeline.userVote === 1 ? "text-green-500" : ""}`} />
+                          </Button>
+                        </BouncyClick>
+                        <span className="text-xl font-bold">
+                          <Counter count={timeline.karma} />
+                        </span>
+                        <BouncyClick>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleVote(-1)}
+                          >
+                            <ArrowDown className={`h-5 w-5 ${timeline.userVote === -1 ? "text-red-500" : ""}`} />
+                          </Button>
+                        </BouncyClick>
+                      </div>
                     </div>
 
                     {timeline.manifesto && (
@@ -383,42 +379,9 @@ export default function TimelinePageClient() {
 
                     {/* Action Buttons */}
                     <div className="space-y-2">
-                      
 
-                      {/* Voting */}
-                      {/* <div className="flex items-center justify-center gap-2 border rounded-md p-2">
-                        <BouncyClick>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleVote(1)}
-                          >
-                            <ArrowUp
-                              className={`h-4 w-4 ${
-                                timeline.userVote === 1 ? "text-primary" : ""
-                              }`}
-                            />
-                          </Button>
-                        </BouncyClick>
-                        <span className="text-sm font-bold min-w-[2rem] text-center">
-                          <Counter count={timeline.karma} />
-                        </span>
-                        <BouncyClick>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleVote(-1)}
-                          >
-                            <ArrowDown
-                              className={`h-4 w-4 ${
-                                timeline.userVote === -1 ? "text-primary" : ""
-                              }`}
-                            />
-                          </Button>
-                        </BouncyClick>
-                      </div> */}
+
+
                     </div>
                   </CardContent>
                 </Card>
@@ -529,9 +492,7 @@ export default function TimelinePageClient() {
                             onClick={() => handleVote(1)}
                           >
                             <ArrowUp
-                              className={`h-4 w-4 ${
-                                timeline.userVote === 1 ? "text-primary" : ""
-                              }`}
+                              className={`h-5 w-5 ${timeline.userVote === 1 ? "text-green-500" : ""}`}
                             />
                           </Button>
                         </BouncyClick>
@@ -546,9 +507,7 @@ export default function TimelinePageClient() {
                             onClick={() => handleVote(-1)}
                           >
                             <ArrowDown
-                              className={`h-4 w-4 ${
-                                timeline.userVote === -1 ? "text-primary" : ""
-                              }`}
+                              className={`h-5 w-5 ${timeline.userVote === -1 ? "text-red-500" : ""}`}
                             />
                           </Button>
                         </BouncyClick>

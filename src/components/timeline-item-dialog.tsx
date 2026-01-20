@@ -257,9 +257,9 @@ export default function TimelineItemDialog({
   const currentItem = itemData?.timelineItem || item;
   const allFiles = currentItem
     ? [
-        ...currentItem.files,
-        ...currentItem.albums.flatMap((album: any) => album.files),
-      ]
+      ...currentItem.files,
+      ...currentItem.albums.flatMap((album: any) => album.files),
+    ]
     : [];
 
   const handleSelectFiles = async () => {
@@ -530,7 +530,7 @@ export default function TimelineItemDialog({
                 <DateTimePicker
                   date={startDate}
                   onDateChange={setStartDate}
-                  placeholder="Pick start date"
+                  placeholder="Select date"
                   showTime
                 />
               </div>
@@ -540,7 +540,7 @@ export default function TimelineItemDialog({
                 <DateTimePicker
                   date={endDate}
                   onDateChange={setEndDate}
-                  placeholder="Pick end date"
+                  placeholder="Select date"
                   showTime
                 />
               </div>
@@ -630,11 +630,10 @@ export default function TimelineItemDialog({
                   <div
                     id="timeline-item-dropzone"
                     onClick={handleSelectFiles}
-                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                      isDragActive
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
                         ? "border-primary bg-primary/10"
                         : "border-muted-foreground/25"
-                    }`}
+                      }`}
                   >
                     <p className="text-sm text-muted-foreground">
                       {isDragActive
@@ -684,28 +683,28 @@ export default function TimelineItemDialog({
                 {item && (
                   <BouncyClick disabled={deleting || uploading}>
                     <Button
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={deleting || uploading}
-                  >
-                    {deleting ? <Spinner size="sm" /> : "Delete"}
-                  </Button>
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={deleting || uploading}
+                    >
+                      {deleting ? <Spinner size="sm" /> : "Delete"}
+                    </Button>
                   </BouncyClick>
                 )}
                 <BouncyClick disabled={uploading}>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (item) {
-                      setIsEditMode(false);
-                    } else {
-                      onOpenChange(false);
-                    }
-                  }}
-                  disabled={uploading}
-                >
-                  Cancel
-                </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (item) {
+                        setIsEditMode(false);
+                      } else {
+                        onOpenChange(false);
+                      }
+                    }}
+                    disabled={uploading}
+                  >
+                    Cancel
+                  </Button>
                 </BouncyClick>
                 <BouncyClick disabled={creating || updating || uploading}>
                   <Button

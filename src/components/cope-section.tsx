@@ -516,7 +516,7 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
         {loading ? (
           <motion.div
             key="spinner"
-            className="flex justify-center py-8 items-center h-full"
+            className="flex justify-center py-8 items-center"
             initial={fade_out}
             animate={normalize}
             exit={fade_out_scale_1}
@@ -568,8 +568,8 @@ function CopeSectionContent({ flavor, contentId }: CopeProps) {
                 key={reply.id}
                 comment={reply}
                 onVote={handleVote}
-                onReply={() => {}}
-                onShowReplies={() => {}}
+                onReply={() => { }}
+                onShowReplies={() => { }}
                 compact
               />
             ))}
@@ -630,9 +630,7 @@ function CommentItem({
               onClick={() => onVote(comment.id, comment.userVote === 1 ? 0 : 1)}
             >
               <ArrowUp
-                className={`h-4 w-4 ${
-                  comment.userVote === 1 ? "fill-green text-green" : ""
-                }`}
+                className={`h-5 w-5 ${comment.userVote === 1 ? "text-green-500" : ""}`}
               />
             </Button>
           </BouncyClick>
@@ -647,9 +645,7 @@ function CommentItem({
               }
             >
               <ArrowDown
-                className={`h-4 w-4 ${
-                  comment.userVote === -1 ? "fill-red text-red" : ""
-                }`}
+                className={`h-5 w-5 ${comment.userVote === -1 ? "text-red-500" : ""}`}
               />
             </Button>
           </BouncyClick>

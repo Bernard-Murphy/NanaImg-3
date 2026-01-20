@@ -280,9 +280,8 @@ export default function FilePageClient() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleVote(1)}
-                    className={file.userVote === 1 ? "text-green" : ""}
                   >
-                    <ArrowUp className="h-5 w-5" />
+                    <ArrowUp className={`h-5 w-5 ${file.userVote === 1 ? "text-green-500" : ""}`} />
                   </Button>
                 </BouncyClick>
                 <span className="text-xl font-bold">{file.karma}</span>
@@ -291,9 +290,8 @@ export default function FilePageClient() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleVote(-1)}
-                    className={file.userVote === -1 ? "text-red" : ""}
                   >
-                    <ArrowDown className="h-5 w-5" />
+                    <ArrowDown className={`h-5 w-5 ${file.userVote === -1 ? "text-red-500" : ""}`} />
                   </Button>
                 </BouncyClick>
               </div>

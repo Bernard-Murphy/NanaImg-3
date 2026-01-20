@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import BouncyClick from "@/components/ui/bouncy-click";
 
 interface DateTimePickerProps {
   date?: Date;
@@ -30,6 +31,7 @@ export function DateTimePicker({
   const [timeValue, setTimeValue] = React.useState<string>(
     date ? format(date, "HH:mm") : "00:00"
   );
+  const [isOpen, setIsOpen] = React.useState(false);
 
   React.useEffect(() => {
     setSelectedDate(date);
@@ -42,6 +44,7 @@ export function DateTimePicker({
     if (!newDate) {
       setSelectedDate(undefined);
       onDateChange(undefined);
+      setIsOpen(false);
       return;
     }
 
@@ -53,6 +56,7 @@ export function DateTimePicker({
 
     setSelectedDate(newDate);
     onDateChange(newDate);
+    setIsOpen(false);
   };
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,19 +74,21 @@ export function DateTimePicker({
 
   return (
     <div className="flex gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant={"outline"}
-            className={cn(
-              "justify-start text-left font-normal flex-1",
-              !selectedDate && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {selectedDate ? format(selectedDate, "PPP") : <span>{placeholder}</span>}
-          </Button>
-        </PopoverTrigger>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <BouncyClick>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "justify-start text-left font-normal",
+                !selectedDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, "PPP") : <span>{placeholder}</span>}
+            </Button>
+          </PopoverTrigger>
+        </BouncyClick>
         <PopoverContent className="w-auto p-0">
           <Calendar
             mode="single"
