@@ -234,8 +234,45 @@ export const resolvers = {
     items: async (parent: any) => {
       return prisma.timelineItem.findMany({
         where: { timelineId: parent.id },
-        orderBy: { timestamp: "desc" },
+        orderBy: { startDate: "asc" },
       });
+    },
+    contributors: async (parent: any) => {
+      return prisma.timelineContributor.findMany({
+        where: { timelineId: parent.id },
+        include: { user: true },
+      });
+    },
+    itemCount: async (parent: any) => {
+      return prisma.timelineItem.count({
+        where: { timelineId: parent.id },
+      });
+    },
+    canEdit: async (parent: any, _: any, context: Context) => {
+      // Not authenticated - cannot edit
+      if (!context.user?.userId) return false;
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) return false;
+
+      // Admin or janny can edit
+      if (isModOrAdmin(user.role)) return true;
+
+      // Creator can edit
+      if (parent.userId === context.user.userId) return true;
+
+      // Check if user is a contributor
+      const contributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: parent.id,
+          userId: context.user.userId,
+        },
+      });
+
+      return !!contributor;
     },
     comments: async (parent: any) => {
       return prisma.comment.findMany({
@@ -253,6 +290,35 @@ export const resolvers = {
     },
     userVote: async (parent: any, _: any, context: Context) => {
       return getUserVote(context.user?.userId || null, "timeline", parent.id);
+    },
+  },
+
+  TimelineItem: {
+    timeline: async (parent: any) => {
+      return prisma.timeline.findUnique({ where: { id: parent.timelineId } });
+    },
+    files: async (parent: any) => {
+      const timelineItemFiles = await prisma.timelineItemFile.findMany({
+        where: { timelineItemId: parent.id },
+        include: { file: true },
+      });
+      return timelineItemFiles.map((tif) => tif.file);
+    },
+    albums: async (parent: any) => {
+      const timelineItemAlbums = await prisma.timelineItemAlbum.findMany({
+        where: { timelineItemId: parent.id },
+        include: { album: true },
+      });
+      return timelineItemAlbums.map((tia) => tia.album);
+    },
+  },
+
+  TimelineContributor: {
+    timeline: async (parent: any) => {
+      return prisma.timeline.findUnique({ where: { id: parent.timelineId } });
+    },
+    user: async (parent: any) => {
+      return prisma.user.findUnique({ where: { id: parent.userId } });
     },
   },
 
@@ -356,6 +422,10 @@ export const resolvers = {
       return timeline;
     },
 
+    timelineItem: async (_: any, args: any) => {
+      return prisma.timelineItem.findUnique({ where: { id: args.id } });
+    },
+
     comment: async (_: any, args: any) => {
       return prisma.comment.findUnique({ where: { id: args.id } });
     },
@@ -419,11 +489,13 @@ export const resolvers = {
             items: { take: 1 },
           },
         });
-        const items = timelines.map(timeline => ({ ...timeline, __typename: "Timeline" }));
+        // Filter out timelines with no items
+        const timelinesWithItems = timelines.filter(t => t.items.length > 0);
+        const items = timelinesWithItems.map(timeline => ({ ...timeline, __typename: "Timeline" }));
         return {
           items,
-          total: timelines.length >= limit ? skip + timelines.length + 1 : skip + timelines.length,
-          hasMore: timelines.length >= limit,
+          total: timelinesWithItems.length >= limit ? skip + timelinesWithItems.length + 1 : skip + timelinesWithItems.length,
+          hasMore: timelinesWithItems.length >= limit,
         };
       }
 
@@ -454,7 +526,7 @@ export const resolvers = {
           include: {
             items: { take: 1 },
           },
-        }),
+        }).then(timelines => timelines.filter(t => t.items.length > 0)),
       ]);
 
       // Combine and sort by timestamp
@@ -1792,6 +1864,424 @@ export const resolvers = {
       await prisma.file.updateMany({
         where: { albumId: args.id },
         data: { removed: true },
+      });
+
+      return true;
+    },
+
+    createTimeline: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Must be logged in to create a timeline");
+      }
+
+      const { name, manifesto, unlisted, anonymous } = args;
+      const userId = anonymous ? null : context.user.userId;
+      const userConnect = userId ? { connect: { id: userId } } : undefined;
+      const { anonId, anonTextColor, anonTextBackground } = context.anonData;
+
+      const timeline = await prisma.timeline.create({
+        data: {
+          name,
+          manifesto: manifesto || "",
+          unlisted: unlisted || false,
+          user: userConnect,
+          anonId,
+          anonTextColor,
+          anonTextBackground,
+        },
+      });
+
+      return timeline;
+    },
+
+    updateTimeline: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timeline = await prisma.timeline.findUnique({
+        where: { id: args.id },
+      });
+
+      if (!timeline) {
+        throw new Error("Timeline not found");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Check if user can edit
+      const isCreator = timeline.userId === context.user.userId;
+      const isMod = isModOrAdmin(user.role);
+      const isContributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: args.id,
+          userId: context.user.userId,
+        },
+      });
+
+      if (!isCreator && !isMod && !isContributor) {
+        throw new Error("Unauthorized");
+      }
+
+      const updates: any = {};
+      if (args.name !== undefined) updates.name = args.name;
+      if (args.manifesto !== undefined) updates.manifesto = args.manifesto;
+
+      return prisma.timeline.update({
+        where: { id: args.id },
+        data: updates,
+      });
+    },
+
+    deleteTimeline: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timeline = await prisma.timeline.findUnique({
+        where: { id: args.id },
+      });
+
+      if (!timeline) {
+        throw new Error("Timeline not found");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Only creator and admins can delete
+      const isCreator = timeline.userId === context.user.userId;
+      const isAdmin = user.role === "admincel";
+
+      if (!isCreator && !isAdmin) {
+        throw new Error("Unauthorized");
+      }
+
+      await prisma.timeline.update({
+        where: { id: args.id },
+        data: { removed: true },
+      });
+
+      return true;
+    },
+
+    createTimelineItem: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const {
+        timelineId,
+        title,
+        description,
+        startDate,
+        endDate,
+        fileIds,
+        albumIds,
+      } = args;
+
+      const timeline = await prisma.timeline.findUnique({
+        where: { id: timelineId },
+      });
+
+      if (!timeline) {
+        throw new Error("Timeline not found");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Check if user can edit
+      const isCreator = timeline.userId === context.user.userId;
+      const isMod = isModOrAdmin(user.role);
+      const isContributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId,
+          userId: context.user.userId,
+        },
+      });
+
+      if (!isCreator && !isMod && !isContributor) {
+        throw new Error("Unauthorized");
+      }
+
+      // Create timeline item
+      const timelineItem = await prisma.timelineItem.create({
+        data: {
+          timelineId,
+          title,
+          description: description || "",
+          startDate: new Date(startDate),
+          endDate: endDate ? new Date(endDate) : null,
+        },
+      });
+
+      // Associate files
+      if (fileIds && fileIds.length > 0) {
+        await Promise.all(
+          fileIds.map((fileId) =>
+            prisma.timelineItemFile.create({
+              data: {
+                timelineItemId: timelineItem.id,
+                fileId,
+              },
+            })
+          )
+        );
+      }
+
+      // Associate albums
+      if (albumIds && albumIds.length > 0) {
+        await Promise.all(
+          albumIds.map((albumId) =>
+            prisma.timelineItemAlbum.create({
+              data: {
+                timelineItemId: timelineItem.id,
+                albumId,
+              },
+            })
+          )
+        );
+      }
+
+      return timelineItem;
+    },
+
+    updateTimelineItem: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timelineItem = await prisma.timelineItem.findUnique({
+        where: { id: args.id },
+        include: { timeline: true },
+      });
+
+      if (!timelineItem) {
+        throw new Error("Timeline item not found");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Check if user can edit
+      const timeline = timelineItem.timeline;
+      const isCreator = timeline.userId === context.user.userId;
+      const isMod = isModOrAdmin(user.role);
+      const isContributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: timeline.id,
+          userId: context.user.userId,
+        },
+      });
+
+      if (!isCreator && !isMod && !isContributor) {
+        throw new Error("Unauthorized");
+      }
+
+      const updates: any = {};
+      if (args.title !== undefined) updates.title = args.title;
+      if (args.description !== undefined) updates.description = args.description;
+      if (args.startDate !== undefined)
+        updates.startDate = new Date(args.startDate);
+      if (args.endDate !== undefined)
+        updates.endDate = args.endDate ? new Date(args.endDate) : null;
+
+      const updated = await prisma.timelineItem.update({
+        where: { id: args.id },
+        data: updates,
+      });
+
+      // Update file associations if provided
+      if (args.fileIds !== undefined) {
+        // Remove existing associations
+        await prisma.timelineItemFile.deleteMany({
+          where: { timelineItemId: args.id },
+        });
+
+        // Add new associations
+        if (args.fileIds.length > 0) {
+          await Promise.all(
+            args.fileIds.map((fileId: number) =>
+              prisma.timelineItemFile.create({
+                data: {
+                  timelineItemId: args.id,
+                  fileId,
+                },
+              })
+            )
+          );
+        }
+      }
+
+      // Update album associations if provided
+      if (args.albumIds !== undefined) {
+        // Remove existing associations
+        await prisma.timelineItemAlbum.deleteMany({
+          where: { timelineItemId: args.id },
+        });
+
+        // Add new associations
+        if (args.albumIds.length > 0) {
+          await Promise.all(
+            args.albumIds.map((albumId: number) =>
+              prisma.timelineItemAlbum.create({
+                data: {
+                  timelineItemId: args.id,
+                  albumId,
+                },
+              })
+            )
+          );
+        }
+      }
+
+      return updated;
+    },
+
+    deleteTimelineItem: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timelineItem = await prisma.timelineItem.findUnique({
+        where: { id: args.id },
+        include: { timeline: true },
+      });
+
+      if (!timelineItem) {
+        throw new Error("Timeline item not found");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.userId },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Check if user can edit
+      const timeline = timelineItem.timeline;
+      const isCreator = timeline.userId === context.user.userId;
+      const isMod = isModOrAdmin(user.role);
+      const isContributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: timeline.id,
+          userId: context.user.userId,
+        },
+      });
+
+      if (!isCreator && !isMod && !isContributor) {
+        throw new Error("Unauthorized");
+      }
+
+      await prisma.timelineItem.delete({
+        where: { id: args.id },
+      });
+
+      return true;
+    },
+
+    addTimelineContributor: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timeline = await prisma.timeline.findUnique({
+        where: { id: args.timelineId },
+      });
+
+      if (!timeline) {
+        throw new Error("Timeline not found");
+      }
+
+      // Only creator can add contributors
+      if (timeline.userId !== context.user.userId) {
+        throw new Error("Only the creator can add contributors");
+      }
+
+      // Check if user exists
+      const contributorUser = await prisma.user.findUnique({
+        where: { id: args.userId },
+      });
+
+      if (!contributorUser) {
+        throw new Error("User not found");
+      }
+
+      // Check if already a contributor
+      const existing = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: args.timelineId,
+          userId: args.userId,
+        },
+      });
+
+      if (existing) {
+        throw new Error("User is already a contributor");
+      }
+
+      return prisma.timelineContributor.create({
+        data: {
+          timelineId: args.timelineId,
+          userId: args.userId,
+        },
+      });
+    },
+
+    removeTimelineContributor: async (_: any, args: any, context: Context) => {
+      if (!context.user?.userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const timeline = await prisma.timeline.findUnique({
+        where: { id: args.timelineId },
+      });
+
+      if (!timeline) {
+        throw new Error("Timeline not found");
+      }
+
+      // Only creator can remove contributors
+      if (timeline.userId !== context.user.userId) {
+        throw new Error("Only the creator can remove contributors");
+      }
+
+      const contributor = await prisma.timelineContributor.findFirst({
+        where: {
+          timelineId: args.timelineId,
+          userId: args.userId,
+        },
+      });
+
+      if (!contributor) {
+        throw new Error("User is not a contributor");
+      }
+
+      await prisma.timelineContributor.delete({
+        where: { id: contributor.id },
       });
 
       return true;

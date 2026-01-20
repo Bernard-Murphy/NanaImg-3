@@ -8,41 +8,42 @@ datasource db {
 }
 
 model User {
-  id             Int             @id @default(autoincrement())
-  username       String          @unique
-  displayName    String
-  timestamp      DateTime        @default(now())
-  passwordHash   String
-  email          String          @unique
-  defaultTheme   String          @default("dark")
-  avatar         Int?
-  bio            String          @default("")
-  banned         Boolean         @default(false)
-  role           String          @default("child")
-  albums         Album[]
-  comments       Comment[]
-  files          File[]
-  modLogs        ModLog[]
-  passwordResets PasswordReset[]
-  reports        Report[]
-  timelines      Timeline[]
-  votes          Vote[]
+  id                  Int                   @id @default(autoincrement())
+  username            String                @unique
+  displayName         String
+  timestamp           DateTime              @default(now())
+  passwordHash        String
+  email               String                @unique
+  defaultTheme        String                @default("dark")
+  avatar              Int?
+  bio                 String                @default("")
+  banned              Boolean               @default(false)
+  role                String                @default("child")
+  albums              Album[]
+  comments            Comment[]
+  files               File[]
+  modLogs             ModLog[]
+  passwordResets      PasswordReset[]
+  reports             Report[]
+  timelines           Timeline[]
+  timelineContributor TimelineContributor[]
+  votes               Vote[]
 
   @@map("users")
 }
 
 model File {
-  id                 Int      @id @default(autoincrement())
+  id                 Int                @id @default(autoincrement())
   name               String?
-  manifesto          String   @default("")
-  timestamp          DateTime @default(now())
-  removed            Boolean  @default(false)
-  unlisted           Boolean  @default(false)
+  manifesto          String             @default("")
+  timestamp          DateTime           @default(now())
+  removed            Boolean            @default(false)
+  unlisted           Boolean            @default(false)
   userId             Int?
   anonId             String
   anonTextColor      String
   anonTextBackground String
-  views              Int      @default(0)
+  views              Int                @default(0)
   fileName           String
   fileSize           Int
   mimeType           String
@@ -50,61 +51,68 @@ model File {
   fileUrl            String
   thumbnailUrl       String?
   albumId            Int?
-  album              Album?   @relation(fields: [albumId], references: [id])
-  user               User?    @relation(fields: [userId], references: [id])
-  modLogs            ModLog[] @relation("FileModLogs")
-  reports            Report[] @relation("FileReports")
+  album              Album?             @relation(fields: [albumId], references: [id])
+  user               User?              @relation(fields: [userId], references: [id])
+  modLogs            ModLog[]           @relation("FileModLogs")
+  reports            Report[]           @relation("FileReports")
+  timelineItems      TimelineItemFile[]
 
   @@map("files")
 }
 
 model Album {
-  id                 Int      @id @default(autoincrement())
+  id                 Int                 @id @default(autoincrement())
   name               String?
-  timestamp          DateTime @default(now())
+  timestamp          DateTime            @default(now())
   userId             Int?
   anonId             String
   anonTextColor      String
   anonTextBackground String
-  views              Int      @default(0)
-  removed            Boolean  @default(false)
-  unlisted           Boolean  @default(false)
-  manifesto          String   @default("")
-  user               User?    @relation(fields: [userId], references: [id])
+  views              Int                 @default(0)
+  removed            Boolean             @default(false)
+  unlisted           Boolean             @default(false)
+  manifesto          String              @default("")
+  user               User?               @relation(fields: [userId], references: [id])
   files              File[]
-  modLogs            ModLog[] @relation("AlbumModLogs")
-  reports            Report[] @relation("AlbumReports")
+  modLogs            ModLog[]            @relation("AlbumModLogs")
+  reports            Report[]            @relation("AlbumReports")
+  timelineItems      TimelineItemAlbum[]
 
   @@map("albums")
 }
 
 model Timeline {
-  id                 Int            @id @default(autoincrement())
+  id                 Int                   @id @default(autoincrement())
   name               String?
-  timestamp          DateTime       @default(now())
+  timestamp          DateTime              @default(now())
   userId             Int?
   anonId             String
   anonTextColor      String
   anonTextBackground String
-  views              Int            @default(0)
-  removed            Boolean        @default(false)
-  unlisted           Boolean        @default(false)
-  manifesto          String         @default("")
-  modLogs            ModLog[]       @relation("TimelineModLogs")
-  reports            Report[]       @relation("TimelineReports")
+  views              Int                   @default(0)
+  removed            Boolean               @default(false)
+  unlisted           Boolean               @default(false)
+  manifesto          String                @default("")
+  modLogs            ModLog[]              @relation("TimelineModLogs")
+  reports            Report[]              @relation("TimelineReports")
   items              TimelineItem[]
-  user               User?          @relation(fields: [userId], references: [id])
+  contributors       TimelineContributor[]
+  user               User?                 @relation(fields: [userId], references: [id])
 
   @@map("timelines")
 }
 
 model TimelineItem {
-  id            Int      @id @default(autoincrement())
-  timelineId    Int
-  timestamp     DateTime @default(now())
-  positionStart Int?
-  positionEnd   Int?
-  timeline      Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  id          Int                 @id @default(autoincrement())
+  timelineId  Int
+  timestamp   DateTime            @default(now())
+  title       String?
+  description String              @default("")
+  startDate   DateTime
+  endDate     DateTime?
+  timeline    Timeline            @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  files       TimelineItemFile[]
+  albums      TimelineItemAlbum[]
 
   @@map("timeline_items")
 }
@@ -197,6 +205,42 @@ model PasswordReset {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
+}
+
+model TimelineContributor {
+  id         Int      @id @default(autoincrement())
+  timelineId Int
+  userId     Int
+  timestamp  DateTime @default(now())
+  timeline   Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([timelineId, userId])
+  @@map("timeline_contributors")
+}
+
+model TimelineItemFile {
+  id             Int          @id @default(autoincrement())
+  timelineItemId Int
+  fileId         Int
+  timestamp      DateTime     @default(now())
+  timelineItem   TimelineItem @relation(fields: [timelineItemId], references: [id], onDelete: Cascade)
+  file           File         @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([timelineItemId, fileId])
+  @@map("timeline_item_files")
+}
+
+model TimelineItemAlbum {
+  id             Int          @id @default(autoincrement())
+  timelineItemId Int
+  albumId        Int
+  timestamp      DateTime     @default(now())
+  timelineItem   TimelineItem @relation(fields: [timelineItemId], references: [id], onDelete: Cascade)
+  album          Album        @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@unique([timelineItemId, albumId])
+  @@map("timeline_item_albums")
 }
 
 model Session {
