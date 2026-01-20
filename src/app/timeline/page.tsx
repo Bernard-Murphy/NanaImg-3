@@ -11,14 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import BouncyClick from "@/components/ui/bouncy-click";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   fade_out,
   normalize,
   fade_out_scale_1,
   transition,
+  transition_fast,
 } from "@/lib/transitions";
 import Spinner from "@/components/ui/spinner";
+import { AuthDialog } from '@/components/auth-dialog'
 
 const ME_QUERY = gql`
   query Me {
@@ -53,8 +55,8 @@ function CreateTimelineContent() {
   const [unlisted, setUnlisted] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
   const [creating, setCreating] = useState(false);
-
-  const { data: meData, loading: meLoading } = useQuery(ME_QUERY);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { data: meData, loading: meLoading, refetch: refetchMe } = useQuery(ME_QUERY);
   const [createTimeline] = useMutation(CREATE_TIMELINE_MUTATION);
 
   const handleSubmit = async () => {
@@ -87,26 +89,8 @@ function CreateTimelineContent() {
   if (meLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-2xl mx-auto text-center flex justify-center items-center">
           <Spinner size="lg" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!meData?.me) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <Card className="p-8">
-            <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-            <p className="text-muted-foreground mb-4">
-              You must be logged in to create a timeline.
-            </p>
-            <Button asChild>
-              <a href="/">Go Home</a>
-            </Button>
-          </Card>
         </div>
       </div>
     );
@@ -120,82 +104,115 @@ function CreateTimelineContent() {
       transition={transition}
       className="container mx-auto px-4 py-8"
     >
-      <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-center">Timeline (Work in Progress)</h1>
-        <p className="text-center text-muted-foreground">
-          This feature is still under development.
-        </p>
+      <AnimatePresence mode="wait">
+      {!meData?.me ? (
+        <motion.div
+        initial={fade_out}
+        animate={normalize}
+        exit={fade_out_scale_1}
+        transition={transition_fast}
+        key="logged-out" className="container mx-auto px-4 py-8">
+              <div className="max-w-2xl mx-auto text-center">
+                <Card className="p-8">
+                  <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+                  <p className="text-muted-foreground mb-4">
+                    You must be logged in to create a timeline.
+                  </p>
+                  <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} onSuccess={() => refetchMe()}>
+                    <BouncyClick >
+                      <Button onClick={() => setShowAuthDialog(true)}>
+                        Login/Register
+                      </Button>
+                    </BouncyClick>
+                  </AuthDialog>
+                </Card>
+              </div>
+            </motion.div>
+      ) : (
+        <motion.div
+        initial={fade_out}
+        animate={normalize}
+        exit={fade_out_scale_1}
+        transition={transition_fast}
+        key="logged-in" className="max-w-2xl mx-auto space-y-6">
+              <h1 className="text-3xl font-bold text-center">Timeline (Work in Progress)</h1>
+              <p className="text-center text-muted-foreground">
+                This feature is still under development.
+              </p>
 
-        <Card className="p-6 space-y-4">
-          <div>
-            <Label htmlFor="name">Title</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="(Optional)"
-              disabled={creating}
-            />
-          </div>
+              <Card className="p-6 space-y-4">
+                <div>
+                  <Label htmlFor="name">Title</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="(Optional)"
+                    disabled={creating}
+                  />
+                </div>
 
-          <div>
-            <Label htmlFor="manifesto">Description</Label>
-            <Textarea
-              id="manifesto"
-              value={manifesto}
-              onChange={(e) => setManifesto(e.target.value)}
-              placeholder="(Optional - Markdown supported)"
-              disabled={creating}
-              rows={6}
-            />
-          </div>
+                <div>
+                  <Label htmlFor="manifesto">Description</Label>
+                  <Textarea
+                    id="manifesto"
+                    value={manifesto}
+                    onChange={(e) => setManifesto(e.target.value)}
+                    placeholder="(Optional - Markdown supported)"
+                    disabled={creating}
+                    rows={6}
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="unlisted"
-                checked={unlisted}
-                onCheckedChange={(checked) => setUnlisted(checked as boolean)}
-                disabled={creating}
-              />
-              <Label htmlFor="unlisted">Keep unlisted</Label>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="unlisted"
+                      checked={unlisted}
+                      onCheckedChange={(checked) => setUnlisted(checked as boolean)}
+                      disabled={creating}
+                    />
+                    <Label htmlFor="unlisted">Keep unlisted</Label>
+                  </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="anonymous"
-                checked={anonymous}
-                onCheckedChange={(checked) => setAnonymous(checked as boolean)}
-                disabled={creating}
-              />
-              <Label htmlFor="anonymous">Post anonymously</Label>
-            </div>
-          </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="anonymous"
+                      checked={anonymous}
+                      onCheckedChange={(checked) => setAnonymous(checked as boolean)}
+                      disabled={creating}
+                    />
+                    <Label htmlFor="anonymous">Post anonymously</Label>
+                  </div>
+                </div>
 
-          <BouncyClick>
-            <Button
-              onClick={handleSubmit}
-              disabled={creating}
-              className="w-full text-white"
-              size="lg"
-            >
-              {creating ? (
-                <>
-                  <Spinner color="white" size="sm" className="mr-2" />
-                  Creating Timeline
-                </>
-              ) : (
-                "Create Timeline"
-              )}
-            </Button>
-          </BouncyClick>
-        </Card>
+                <BouncyClick>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={creating}
+                    className="w-full text-white"
+                    size="lg"
+                  >
+                    {creating ? (
+                      <>
+                        <Spinner color="white" size="sm" className="mr-2" />
+                        Creating Timeline
+                      </>
+                    ) : (
+                      "Create Timeline"
+                    )}
+                  </Button>
+                </BouncyClick>
+              </Card>
 
-        <p className="text-xs text-muted-foreground text-center">
-          After creating your timeline, you can add timeline items with dates and
-          associated files.
-        </p>
-      </div>
+              <p className="text-xs text-muted-foreground text-center">
+                After creating your timeline, you can add timeline items with dates and
+                associated files.
+              </p>
+            </motion.div>
+      )}
+      </AnimatePresence>
+      
     </motion.div>
   );
 }
