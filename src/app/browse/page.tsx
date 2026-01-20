@@ -8,13 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
@@ -28,6 +21,7 @@ import {
   FolderOpen,
   RefreshCw,
   X,
+  CalendarDays,
 } from "lucide-react";
 import { getFileExtension } from "@/lib/utils";
 import BouncyClick from "@/components/ui/bouncy-click";
@@ -508,7 +502,7 @@ function BrowseItem({ item }: { item: any }) {
             </div>
           ) : (
             <div className="aspect-square relative bg-muted flex items-center justify-center">
-              {getFileIcon(item.mimeType || "")}
+              {isTimeline ? <CalendarDays className="h-12 w-12 text-muted-foreground" /> : getFileIcon(item || "")}
             </div>
           )}
 

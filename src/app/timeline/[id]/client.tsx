@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useParams } from "next/navigation";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
@@ -13,7 +13,8 @@ import {
   Eye,
   MessageSquare,
   Plus,
-  Edit,
+  Info,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
@@ -96,8 +97,26 @@ export default function TimelinePageClient() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(
     null
+  );
+  const handleDateRangeChange = useCallback(
+    (range: { start: Date; end: Date } | null) => {
+      setDateRange((prev) => {
+        if (!prev && !range) return prev;
+        if (!range) return null;
+        if (
+          prev &&
+          prev.start.getTime() === range.start.getTime() &&
+          prev.end.getTime() === range.end.getTime()
+        ) {
+          return prev;
+        }
+        return range;
+      });
+    },
+    []
   );
 
   const { data, loading, refetch } = useQuery(TIMELINE_QUERY, {
@@ -130,7 +149,7 @@ export default function TimelinePageClient() {
 
   // Filter items based on date range from lens
   const visibleItems = timeline?.items?.filter((item: any) => {
-    if (!dateRange) return true;
+    if (!dateRange) return false; // Only show items within the lens range
     const itemStart = new Date(item.startDate);
     const itemEnd = item.endDate ? new Date(item.endDate) : itemStart;
     return itemStart <= dateRange.end && itemEnd >= dateRange.start;
@@ -144,15 +163,11 @@ export default function TimelinePageClient() {
   });
 
   return (
-    <motion.div
-      initial={fade_out}
-      animate={normalize}
-      exit={fade_out_scale_1}
-      transition={transition}
-      className="container mx-auto px-4 py-8 pb-32"
+    <div
+      className="w-full py-4 pb-32"
     >
       {loading ? (
-        <div className="max-w-6xl mx-auto">
+        <div className="px-4">
           <Card className="p-8">
             <div className="animate-pulse space-y-4">
               <div className="h-8 bg-muted rounded w-1/4" />
@@ -169,7 +184,7 @@ export default function TimelinePageClient() {
               exit={fade_out_scale_1}
               key="not-found"
               transition={transition}
-              className="max-w-6xl mx-auto text-center"
+              className="px-4 text-center"
             >
               <Card className="p-8">
                 <h1 className="text-2xl font-bold mb-4">Timeline Not Found</h1>
@@ -190,17 +205,114 @@ export default function TimelinePageClient() {
               animate={normalize}
               exit={fade_out_scale_1}
               transition={transition}
-              className="max-w-6xl mx-auto space-y-6"
+              className="flex gap-4 px-4"
             >
-              {/* Timeline Header */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h1 className="text-3xl font-bold mb-2">
+              {/* Main Content Area */}
+              <div className="flex-1 space-y-4">
+                {/* Mobile Info Button */}
+                <div className="lg:hidden">
+                  <BouncyClick>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowInfo(true)}
+                      className="w-full"
+                    >
+                      <Info className="h-4 w-4 mr-2" />
+                      Timeline Info
+                    </Button>
+                  </BouncyClick>
+                </div>
+
+                {/* Timeline Items Display */}
+                {sortedVisibleItems.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                    {sortedVisibleItems.map((item: any) => {
+                      const allFiles = [
+                        ...item.files,
+                        ...item.albums.flatMap((album: any) => album.files),
+                      ];
+                      const thumbnail = allFiles[0]?.thumbnailUrl;
+
+                      return (
+                        <BouncyClick key={item.id}>
+                          <Card
+                            className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
+                            onClick={() => setSelectedItem(item)}
+                          >
+                            {thumbnail && (
+                              <div className="aspect-square relative bg-muted">
+                                <img
+                                  src={thumbnail}
+                                  alt={item.title || "Timeline item"}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <CardContent className="p-3">
+                              <div className="space-y-1">
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {new Date(item.startDate).toLocaleDateString()}
+                                </div>
+                                <div className="text-sm font-medium truncate">
+                                  {item.title || "Untitled"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {allFiles.length} file{allFiles.length !== 1 ? "s" : ""}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </BouncyClick>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      {timeline.items?.length === 0
+                        ? "No timeline items yet. Click 'Add Item' to get started"
+                        : "No items in the selected date range."}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:block w-80 xl:w-96 space-y-4">
+                <div className="flex items-center justify-end gap-2">
+                  <BouncyClick>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowComments(true)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Comments ({timeline.commentCount})
+                    </Button>
+                  </BouncyClick>
+
+                  {timeline.canEdit && (
+                    <BouncyClick>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setShowAddItem(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </BouncyClick>
+                  )}
+                </div>
+                <Card>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex justify-between">
+                      <div>
+                      <h1 className="text-2xl font-bold mb-2">
                         {timeline.name || "Untitled Timeline"}
                       </h1>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <div>
                           {timeline.user ? (
                             <Link
@@ -230,15 +342,161 @@ export default function TimelinePageClient() {
                           <Counter count={timeline.views} />
                         </div>
                       </div>
+  
+                    </div>
+                                        <div className="flex flex-col items-center gap-2">
+                      <BouncyClick>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleVote(1)}
+                          className={timeline.userVote === 1 ? "text-primary" : ""}
+                        >
+                          <ArrowUp className="h-5 w-5" />
+                        </Button>
+                      </BouncyClick>
+                      <span className="text-xl font-bold">
+                        <Counter count={timeline.karma} />
+                      </span>
+                      <BouncyClick>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleVote(-1)}
+                          className={
+                            timeline.userVote === -1 ? "text-primary" : ""
+                          }
+                        >
+                          <ArrowDown className="h-5 w-5" />
+                        </Button>
+                      </BouncyClick>
+                    </div>
                     </div>
 
+                    {timeline.manifesto && (
+                      <div className="text-sm text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {timeline.manifesto}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
+                      
+
+                      {/* Voting */}
+                      {/* <div className="flex items-center justify-center gap-2 border rounded-md p-2">
+                        <BouncyClick>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleVote(1)}
+                          >
+                            <ArrowUp
+                              className={`h-4 w-4 ${
+                                timeline.userVote === 1 ? "text-primary" : ""
+                              }`}
+                            />
+                          </Button>
+                        </BouncyClick>
+                        <span className="text-sm font-bold min-w-[2rem] text-center">
+                          <Counter count={timeline.karma} />
+                        </span>
+                        <BouncyClick>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleVote(-1)}
+                          >
+                            <ArrowDown
+                              className={`h-4 w-4 ${
+                                timeline.userVote === -1 ? "text-primary" : ""
+                              }`}
+                            />
+                          </Button>
+                        </BouncyClick>
+                      </div> */}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Timeline Ribbon */}
+              <TimelineRibbon
+                items={timeline.items || []}
+                onDateRangeChange={handleDateRangeChange}
+              />
+
+              {/* Mobile Info Dialog */}
+              <Dialog open={showInfo} onOpenChange={setShowInfo}>
+                <DialogContent className="[&>button]:hidden max-w-lg">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h2 className="text-xl font-bold mb-2">
+                          {timeline.name || "Untitled Timeline"}
+                        </h2>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                          <div>
+                            {timeline.user ? (
+                              <Link
+                                href={`/u/${timeline.user.username}`}
+                                className="hover:underline"
+                              >
+                                {timeline.user.username}
+                              </Link>
+                            ) : (
+                              <>
+                                Anon{" "}
+                                <span
+                                  className="px-2 py-1 rounded text-xs font-medium"
+                                  style={{
+                                    color: timeline.anonTextColor,
+                                    backgroundColor: timeline.anonTextBackground,
+                                  }}
+                                >
+                                  {timeline.anonId}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div>{formatDate(timeline.timestamp)}</div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            <Counter count={timeline.views} />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowInfo(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {timeline.manifesto && (
+                      <div className="text-sm text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {timeline.manifesto}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
                       <BouncyClick>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setShowComments(true)}
+                          onClick={() => {
+                            setShowInfo(false);
+                            setShowComments(true);
+                          }}
+                          className="w-full"
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Comments ({timeline.commentCount})
@@ -250,7 +508,11 @@ export default function TimelinePageClient() {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => setShowAddItem(true)}
+                            onClick={() => {
+                              setShowInfo(false);
+                              setShowAddItem(true);
+                            }}
+                            className="w-full"
                           >
                             <Plus className="h-4 w-4 mr-2" />
                             Add Item
@@ -258,8 +520,7 @@ export default function TimelinePageClient() {
                         </BouncyClick>
                       )}
 
-                      {/* Voting */}
-                      <div className="flex items-center gap-2 border rounded-md px-2">
+                      <div className="flex items-center justify-center gap-2 border rounded-md p-2">
                         <BouncyClick>
                           <Button
                             variant="ghost"
@@ -294,86 +555,22 @@ export default function TimelinePageClient() {
                       </div>
                     </div>
                   </div>
-
-                  {timeline.manifesto && (
-                    <div className="text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {timeline.manifesto}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Timeline Items Display */}
-              {sortedVisibleItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sortedVisibleItems.slice(0, 12).map((item: any) => {
-                    const allFiles = [
-                      ...item.files,
-                      ...item.albums.flatMap((album: any) => album.files),
-                    ];
-                    const thumbnail = allFiles[0]?.thumbnailUrl;
-
-                    return (
-                      <BouncyClick key={item.id}>
-                        <Card
-                          className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
-                          onClick={() => setSelectedItem(item)}
-                        >
-                          {thumbnail && (
-                            <div className="aspect-video relative bg-muted">
-                              <img
-                                src={thumbnail}
-                                alt={item.title || "Timeline item"}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <CardContent className="p-4">
-                            <div className="space-y-2">
-                              <div className="text-xs text-muted-foreground">
-                                {formatDate(item.startDate)}
-                                {item.endDate &&
-                                  ` - ${formatDate(item.endDate)}`}
-                              </div>
-                              <div className="font-medium">
-                                {item.title || "Untitled"}
-                              </div>
-                              {item.description && (
-                                <div className="text-sm text-muted-foreground line-clamp-2">
-                                  {item.description}
-                                </div>
-                              )}
-                              <div className="text-xs text-muted-foreground">
-                                {allFiles.length} file{allFiles.length !== 1 ? "s" : ""}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </BouncyClick>
-                    );
-                  })}
-                </div>
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    {timeline.items?.length === 0
-                      ? "No timeline items yet. Add your first item to get started!"
-                      : "No items in the selected date range."}
-                  </p>
-                </Card>
-              )}
-
-              {/* Timeline Ribbon */}
-              <TimelineRibbon
-                items={timeline.items || []}
-                onDateRangeChange={setDateRange}
-              />
+                </DialogContent>
+              </Dialog>
 
               {/* Comments Dialog */}
               <Dialog open={showComments} onOpenChange={setShowComments}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="[&>button]:hidden max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <div className="absolute top-0 right-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="p-4 h-2 w-2"
+                      onClick={() => setShowComments(false)}
+                    >
+                      <X className="h-2 w-2" />
+                    </Button>
+                  </div>
                   <CopeSection flavor="timeline" contentId={timelineId} />
                 </DialogContent>
               </Dialog>
@@ -402,7 +599,6 @@ export default function TimelinePageClient() {
           )}
         </AnimatePresence>
       )}
-    </motion.div>
+    </div>
   );
 }
-

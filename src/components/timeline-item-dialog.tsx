@@ -38,6 +38,7 @@ import {
 } from "@/hooks/use-file-input";
 import { FilePreview } from "@/components/file-preview";
 import { Progress } from "@/components/ui/progress";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 const TIMELINE_ITEM_QUERY = gql`
   query GetTimelineItem($id: Int!) {
@@ -192,12 +193,12 @@ export default function TimelineItemDialog({
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [selectedFileIds, setSelectedFileIds] = useState<number[]>([]);
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<number[]>([]);
+  const [newFileIdsInput, setNewFileIdsInput] = useState("");
+  const [newAlbumIdsInput, setNewAlbumIdsInput] = useState("");
   const [uploadFiles, setUploadFiles] = useState<FileWithProgress[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -246,17 +247,8 @@ export default function TimelineItemDialog({
       const item = itemData.timelineItem;
       setTitle(item.title || "");
       setDescription(item.description || "");
-      
-      const start = new Date(item.startDate);
-      setStartDate(start.toISOString().split("T")[0]);
-      setStartTime(start.toTimeString().slice(0, 5));
-
-      if (item.endDate) {
-        const end = new Date(item.endDate);
-        setEndDate(end.toISOString().split("T")[0]);
-        setEndTime(end.toTimeString().slice(0, 5));
-      }
-
+      setStartDate(new Date(item.startDate));
+      setEndDate(item.endDate ? new Date(item.endDate) : undefined);
       setSelectedFileIds(item.files.map((f: any) => f.id));
       setSelectedAlbumIds(item.albums.map((a: any) => a.id));
     }
@@ -327,6 +319,25 @@ export default function TimelineItemDialog({
 
     try {
       let uploadedFileIds = [...selectedFileIds];
+      let uploadedAlbumIds = [...selectedAlbumIds];
+
+      // Parse new file IDs from input
+      if (newFileIdsInput.trim()) {
+        const newIds = newFileIdsInput
+          .split(",")
+          .map((id) => parseInt(id.trim()))
+          .filter((id) => !isNaN(id));
+        uploadedFileIds.push(...newIds);
+      }
+
+      // Parse new album IDs from input
+      if (newAlbumIdsInput.trim()) {
+        const newIds = newAlbumIdsInput
+          .split(",")
+          .map((id) => parseInt(id.trim()))
+          .filter((id) => !isNaN(id));
+        uploadedAlbumIds.push(...newIds);
+      }
 
       // Upload new files if any
       if (uploadFiles.length > 0) {
@@ -382,22 +393,16 @@ export default function TimelineItemDialog({
         }
       }
 
-      const startDateTime = new Date(`${startDate}T${startTime || "00:00"}`);
-      const endDateTime =
-        endDate && endDate !== ""
-          ? new Date(`${endDate}T${endTime || "00:00"}`)
-          : null;
-
       if (item) {
         await updateTimelineItem({
           variables: {
             id: item.id,
             title: title || null,
             description,
-            startDate: startDateTime.toISOString(),
-            endDate: endDateTime?.toISOString() || null,
+            startDate: startDate.toISOString(),
+            endDate: endDate?.toISOString() || null,
             fileIds: uploadedFileIds,
-            albumIds: selectedAlbumIds,
+            albumIds: uploadedAlbumIds,
           },
         });
         toast.success("Timeline item updated!");
@@ -407,10 +412,10 @@ export default function TimelineItemDialog({
             timelineId,
             title: title || null,
             description,
-            startDate: startDateTime.toISOString(),
-            endDate: endDateTime?.toISOString() || null,
+            startDate: startDate.toISOString(),
+            endDate: endDate?.toISOString() || null,
             fileIds: uploadedFileIds,
-            albumIds: selectedAlbumIds,
+            albumIds: uploadedAlbumIds,
           },
         });
         toast.success("Timeline item created!");
@@ -477,7 +482,7 @@ export default function TimelineItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="[&>button]:hidden max-w-4xl max-h-[90vh] overflow-y-auto">
         {itemLoading ? (
           <div className="flex justify-center p-8">
             <Spinner size="lg" />
@@ -520,67 +525,124 @@ export default function TimelineItemDialog({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="startDate">Start Date *</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="startTime">Start Time</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
+              <div>
+                <Label>Start Date & Time *</Label>
+                <DateTimePicker
+                  date={startDate}
+                  onDateChange={setStartDate}
+                  placeholder="Pick start date"
+                  showTime
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>End Date & Time (Optional)</Label>
+                <DateTimePicker
+                  date={endDate}
+                  onDateChange={setEndDate}
+                  placeholder="Pick end date"
+                  showTime
+                />
+              </div>
+
+              {/* Existing Files/Albums (Edit Mode) */}
+              {item && (
                 <div>
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                  <Label>Associated Files & Albums</Label>
+                  <div className="space-y-2 mt-2">
+                    {currentItem?.files?.map((file: any) => (
+                      <div
+                        key={`file-${file.id}`}
+                        className="flex items-center gap-3 p-2 border rounded"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">
+                            File #{file.id}: {file.name || file.fileName}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setSelectedFileIds((prev) =>
+                              prev.filter((id) => id !== file.id)
+                            )
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {currentItem?.albums?.map((album: any) => (
+                      <div
+                        key={`album-${album.id}`}
+                        className="flex items-center gap-3 p-2 border rounded"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">
+                            Album #{album.id}: {album.name || "Untitled"} ({album.files.length} files)
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setSelectedAlbumIds((prev) =>
+                              prev.filter((id) => id !== album.id)
+                            )
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="endTime">End Time</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
+              )}
+
+              {/* Add Files/Albums by ID */}
+              <div>
+                <Label htmlFor="fileIds">Add File IDs (comma-separated)</Label>
+                <Input
+                  id="fileIds"
+                  value={newFileIdsInput}
+                  onChange={(e) => setNewFileIdsInput(e.target.value)}
+                  placeholder="e.g. 123, 456, 789"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="albumIds">Add Album IDs (comma-separated)</Label>
+                <Input
+                  id="albumIds"
+                  value={newAlbumIdsInput}
+                  onChange={(e) => setNewAlbumIdsInput(e.target.value)}
+                  placeholder="e.g. 10, 20, 30"
+                />
               </div>
 
               {/* File upload section */}
               <div>
-                <Label>Upload Files</Label>
-                <div
-                  id="timeline-item-dropzone"
-                  onClick={handleSelectFiles}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                    isDragActive
-                      ? "border-primary bg-primary/10"
-                      : "border-muted-foreground/25"
-                  }`}
-                >
-                  <p className="text-sm text-muted-foreground">
-                    {isDragActive
-                      ? "Drop files here"
-                      : "Click, paste, or drag to add files"}
-                  </p>
-                </div>
+                <Label>Upload New Files</Label>
+                <BouncyClick>
+                  <div
+                    id="timeline-item-dropzone"
+                    onClick={handleSelectFiles}
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                      isDragActive
+                        ? "border-primary bg-primary/10"
+                        : "border-muted-foreground/25"
+                    }`}
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      {isDragActive
+                        ? "Drop files here"
+                        : "Click, paste, or drag to add files"}
+                    </p>
+                  </div>
+                </BouncyClick>
 
                 {uploadFiles.length > 0 && (
                   <div className="mt-4 space-y-2">
@@ -620,14 +682,17 @@ export default function TimelineItemDialog({
 
               <div className="flex gap-2 justify-end">
                 {item && (
-                  <Button
+                  <BouncyClick disabled={deleting || uploading}>
+                    <Button
                     variant="destructive"
                     onClick={handleDelete}
                     disabled={deleting || uploading}
                   >
                     {deleting ? <Spinner size="sm" /> : "Delete"}
                   </Button>
+                  </BouncyClick>
                 )}
+                <BouncyClick disabled={uploading}>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -641,19 +706,22 @@ export default function TimelineItemDialog({
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={creating || updating || uploading}
-                >
-                  {creating || updating || uploading ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save
-                    </>
-                  )}
-                </Button>
+                </BouncyClick>
+                <BouncyClick disabled={creating || updating || uploading}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={creating || updating || uploading}
+                  >
+                    {creating || updating || uploading ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save
+                      </>
+                    )}
+                  </Button>
+                </BouncyClick>
               </div>
             </div>
           </div>
