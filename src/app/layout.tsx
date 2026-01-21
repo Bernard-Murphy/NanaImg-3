@@ -241,11 +241,11 @@ export default function RootLayout({
         name="msapplication-TileImage"
         content="/icons/mstile-144x144.png"
       />
-      <body className={inter.className}>
+      <body className={inter.className + " min-h-screen"}>
         <Providers>
           <Navbar />
           <PageTransition>
-            <main className="min-h-screen">
+            <main>
               {children}
             </main>
           </PageTransition>
