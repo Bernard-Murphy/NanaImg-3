@@ -130,8 +130,8 @@ const DELETE_TIMELINE_ITEM_MUTATION = gql`
 `;
 
 const INITIATE_UPLOAD_MUTATION = gql`
-  mutation InitiateUpload($files: [FileInput!]!) {
-    initiateUpload(files: $files) {
+  mutation InitiateUpload($files: [FileInput!]!, $recaptchaToken: String) {
+    initiateUpload(files: $files, recaptchaToken: $recaptchaToken) {
       uploadId
       urls
       key
@@ -354,6 +354,19 @@ export default function TimelineItemDialog({
 
       // Upload new files if any
       if (uploadFiles.length > 0) {
+        // Get reCAPTCHA token if available
+        let recaptchaToken = "";
+        if (typeof window !== "undefined" && (window as any).grecaptcha) {
+          try {
+            recaptchaToken = await (window as any).grecaptcha.execute(
+              process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+              { action: "upload" }
+            );
+          } catch (e) {
+            console.error("reCAPTCHA error:", e);
+          }
+        }
+
         const { data: uploadData } = await initiateUpload({
           variables: {
             files: uploadFiles.map((f) => ({
@@ -361,6 +374,7 @@ export default function TimelineItemDialog({
               fileSize: f.file.size,
               mimeType: f.file.type,
             })),
+            recaptchaToken,
           },
         });
 

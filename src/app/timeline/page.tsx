@@ -327,8 +327,8 @@ const CREATE_TIMELINE_ITEM_MUTATION = gql`
 `;
 
 const INITIATE_UPLOAD_MUTATION = gql`
-  mutation InitiateUpload($files: [FileInput!]!) {
-    initiateUpload(files: $files) {
+  mutation InitiateUpload($files: [FileInput!]!, $recaptchaToken: String) {
+    initiateUpload(files: $files, recaptchaToken: $recaptchaToken) {
       uploadId
       urls
       key
@@ -452,6 +452,19 @@ function CreateTimelineContent() {
 
           // Upload files for this item if any
           if (item.uploadFiles && item.uploadFiles.length > 0) {
+            // Get reCAPTCHA token if available
+            let recaptchaToken = "";
+            if (typeof window !== "undefined" && (window as any).grecaptcha) {
+              try {
+                recaptchaToken = await (window as any).grecaptcha.execute(
+                  process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+                  { action: "upload" }
+                );
+              } catch (e) {
+                console.error("reCAPTCHA error:", e);
+              }
+            }
+
             const { data: uploadData } = await initiateUpload({
               variables: {
                 files: item.uploadFiles.map((f) => ({
@@ -459,6 +472,7 @@ function CreateTimelineContent() {
                   fileSize: f.size,
                   mimeType: f.type,
                 })),
+                recaptchaToken,
               },
             });
 
