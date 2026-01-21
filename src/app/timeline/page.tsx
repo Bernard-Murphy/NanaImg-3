@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ import { AuthDialog } from '@/components/auth-dialog';
 import { Plus, Edit, Trash2, Calendar, X, Save } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useFileInput, useDragAndDropArea, usePaste } from "@/hooks/use-file-input";
+import { FilePreview } from "@/components/file-preview";
+import { Progress } from "@/components/ui/progress";
 
 const TIMELINE_COLORS = [
   '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
@@ -45,12 +48,60 @@ function TimelineItemDraftDialog({ open, onOpenChange, item, onSave }: TimelineI
   const [description, setDescription] = useState(item?.description || "");
   const [startDate, setStartDate] = useState<Date | undefined>(item?.startDate);
   const [endDate, setEndDate] = useState<Date | undefined>(item?.endDate);
+  const [fileIdsInput, setFileIdsInput] = useState("");
+  const [albumIdsInput, setAlbumIdsInput] = useState("");
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+
+  const { selectFiles } = useFileInput();
+  const { isDragActive } = useDragAndDropArea(
+    (droppedFiles) => {
+      setUploadFiles((prev) => [...prev, ...droppedFiles]);
+    },
+    "timeline-draft-dropzone"
+  );
+  const { isPasting } = usePaste((pastedFiles) => {
+    setUploadFiles((prev) => [...prev, ...pastedFiles]);
+  });
+
+  // Reset form when item changes or dialog opens
+  useEffect(() => {
+    if (open) {
+      setTitle(item?.title || "");
+      setDescription(item?.description || "");
+      setStartDate(item?.startDate);
+      setEndDate(item?.endDate);
+      setFileIdsInput(item?.fileIds?.join(", ") || "");
+      setAlbumIdsInput(item?.albumIds?.join(", ") || "");
+      setUploadFiles(item?.uploadFiles || []);
+    }
+  }, [open, item]);
+
+  const handleSelectFiles = async () => {
+    try {
+      const selectedFiles = await selectFiles({ multiple: true });
+      setUploadFiles((prev) => [...prev, ...selectedFiles]);
+    } catch (error) {
+      console.error("File selection error:", error);
+    }
+  };
 
   const handleSave = () => {
     if (!startDate) {
       toast.warning("Start date is required");
       return;
     }
+
+    // Parse file IDs
+    const fileIds = fileIdsInput
+      .split(",")
+      .map((id) => parseInt(id.trim()))
+      .filter((id) => !isNaN(id));
+
+    // Parse album IDs
+    const albumIds = albumIdsInput
+      .split(",")
+      .map((id) => parseInt(id.trim()))
+      .filter((id) => !isNaN(id));
 
     const color = item?.color || TIMELINE_COLORS[Math.floor(Math.random() * TIMELINE_COLORS.length)];
 
@@ -60,8 +111,9 @@ function TimelineItemDraftDialog({ open, onOpenChange, item, onSave }: TimelineI
       startDate,
       endDate,
       color,
-      fileIds: item?.fileIds || [],
-      albumIds: item?.albumIds || [],
+      fileIds,
+      albumIds,
+      uploadFiles,
     });
   };
 
@@ -122,6 +174,81 @@ function TimelineItemDraftDialog({ open, onOpenChange, item, onSave }: TimelineI
                 placeholder="Select date"
                 showTime
               />
+            </div>
+
+            <div>
+              <Label htmlFor="fileIds">File IDs (comma-separated, optional)</Label>
+              <Input
+                id="fileIds"
+                value={fileIdsInput}
+                onChange={(e) => setFileIdsInput(e.target.value)}
+                placeholder="e.g. 123, 456, 789"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="albumIds">Album IDs (comma-separated, optional)</Label>
+              <Input
+                id="albumIds"
+                value={albumIdsInput}
+                onChange={(e) => setAlbumIdsInput(e.target.value)}
+                placeholder="e.g. 10, 20, 30"
+              />
+            </div>
+
+            <div>
+              <Label>Upload Files (optional)</Label>
+              <BouncyClick>
+                <div
+                  id="timeline-draft-dropzone"
+                  onClick={handleSelectFiles}
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
+                    ? "border-primary bg-primary/10"
+                    : "border-muted-foreground/25"
+                    }`}
+                >
+                  <p className="text-sm text-muted-foreground">
+                    {isDragActive
+                      ? "Drop files here"
+                      : "Click, paste, or drag to add files"}
+                  </p>
+                </div>
+              </BouncyClick>
+
+              {uploadFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {uploadFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-2 border rounded"
+                    >
+                      <FilePreview
+                        file={file}
+                        fileId={`draft-${index}`}
+                        filePath={URL.createObjectURL(file)}
+                        className="w-10 h-10"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm truncate">{file.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setUploadFiles((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -199,6 +326,47 @@ const CREATE_TIMELINE_ITEM_MUTATION = gql`
   }
 `;
 
+const INITIATE_UPLOAD_MUTATION = gql`
+  mutation InitiateUpload($files: [FileInput!]!) {
+    initiateUpload(files: $files) {
+      uploadId
+      urls
+      key
+    }
+  }
+`;
+
+const COMPLETE_UPLOAD_MUTATION = gql`
+  mutation CompleteUpload(
+    $uploads: [CompleteUploadInput!]!
+    $name: String!
+    $manifesto: String
+    $unlisted: Boolean
+    $anonymous: Boolean
+  ) {
+    completeUpload(
+      uploads: $uploads
+      name: $name
+      manifesto: $manifesto
+      unlisted: $unlisted
+      anonymous: $anonymous
+    ) {
+      file {
+        id
+      }
+      album {
+        id
+      }
+    }
+  }
+`;
+
+interface FileWithProgress {
+  file: File;
+  id: string;
+  progress: number;
+}
+
 interface TimelineItemDraft {
   id: string; // Temporary ID for draft items
   title?: string;
@@ -208,6 +376,7 @@ interface TimelineItemDraft {
   color: string;
   fileIds: number[];
   albumIds: number[];
+  uploadFiles: File[]; // Files to be uploaded
 }
 
 function CreateTimelineContent() {
@@ -224,6 +393,36 @@ function CreateTimelineContent() {
   const { data: meData, loading: meLoading, refetch: refetchMe } = useQuery(ME_QUERY);
   const [createTimeline] = useMutation(CREATE_TIMELINE_MUTATION);
   const [createTimelineItem] = useMutation(CREATE_TIMELINE_ITEM_MUTATION);
+  const [initiateUpload] = useMutation(INITIATE_UPLOAD_MUTATION);
+  const [completeUpload] = useMutation(COMPLETE_UPLOAD_MUTATION);
+
+  const uploadFile = async (
+    file: File,
+    urls: string[],
+    key: string,
+    uploadId: string
+  ) => {
+    const chunkSize = 5 * 1024 * 1024;
+    const chunks = Math.ceil(file.size / chunkSize);
+    const parts: Array<{ ETag: string; PartNumber: number }> = [];
+
+    for (let i = 0; i < chunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      const chunk = file.slice(start, end);
+      const response = await fetch(urls[i], {
+        method: "PUT",
+        body: chunk,
+      });
+
+      const etag = response.headers.get("ETag");
+      if (etag) {
+        parts.push({ ETag: etag, PartNumber: i + 1 });
+      }
+    }
+
+    return parts;
+  };
 
   const handleSubmit = async () => {
     if (!meData?.me) {
@@ -246,24 +445,79 @@ function CreateTimelineContent() {
 
       const timelineId = data.createTimeline.id;
 
-      // Create all timeline items
+      // Create all timeline items with file uploads
       if (timelineItems.length > 0) {
-        await Promise.all(
-          timelineItems.map((item) =>
-            createTimelineItem({
+        for (const item of timelineItems) {
+          let uploadedFileIds = [...item.fileIds];
+
+          // Upload files for this item if any
+          if (item.uploadFiles && item.uploadFiles.length > 0) {
+            const { data: uploadData } = await initiateUpload({
               variables: {
-                timelineId,
-                title: item.title || null,
-                description: item.description,
-                startDate: item.startDate.toISOString(),
-                endDate: item.endDate?.toISOString() || null,
-                color: item.color,
-                fileIds: item.fileIds,
-                albumIds: item.albumIds,
+                files: item.uploadFiles.map((f) => ({
+                  fileName: f.name,
+                  fileSize: f.size,
+                  mimeType: f.type,
+                })),
               },
-            })
-          )
-        );
+            });
+
+            const uploadUrls = uploadData.initiateUpload;
+
+            // Upload all files
+            const uploadPromises = item.uploadFiles.map(async (file, index) => {
+              const uploadInfo = uploadUrls[index];
+              const parts = await uploadFile(
+                file,
+                uploadInfo.urls,
+                uploadInfo.key,
+                uploadInfo.uploadId
+              );
+              return {
+                key: uploadInfo.key,
+                uploadId: uploadInfo.uploadId,
+                fileName: file.name,
+                fileSize: file.size,
+                mimeType: file.type,
+                parts,
+              };
+            });
+
+            const uploads = await Promise.all(uploadPromises);
+
+            // Complete upload
+            const { data: completeData } = await completeUpload({
+              variables: {
+                uploads,
+                name: item.title || "Timeline Item File",
+                manifesto: "",
+                unlisted: false,
+                anonymous: false,
+              },
+            });
+
+            // Add uploaded file IDs
+            if (completeData.completeUpload.file) {
+              uploadedFileIds.push(completeData.completeUpload.file.id);
+            } else if (completeData.completeUpload.album) {
+              uploadedFileIds.push(completeData.completeUpload.album.id);
+            }
+          }
+
+          // Create timeline item with all file IDs
+          await createTimelineItem({
+            variables: {
+              timelineId,
+              title: item.title || null,
+              description: item.description,
+              startDate: item.startDate.toISOString(),
+              endDate: item.endDate?.toISOString() || null,
+              color: item.color,
+              fileIds: uploadedFileIds,
+              albumIds: item.albumIds,
+            },
+          });
+        }
       }
 
       toast.success("Timeline created successfully!");
@@ -285,6 +539,7 @@ function CreateTimelineContent() {
       color: itemData.color,
       fileIds: itemData.fileIds || [],
       albumIds: itemData.albumIds || [],
+      uploadFiles: itemData.uploadFiles || [],
     };
     setTimelineItems([...timelineItems, newItem]);
   };
@@ -447,6 +702,11 @@ function CreateTimelineContent() {
                               {item.startDate.toLocaleDateString()}
                               {item.endDate && ` - ${item.endDate.toLocaleDateString()}`}
                             </div>
+                            {(item.fileIds.length > 0 || item.albumIds.length > 0 || item.uploadFiles.length > 0) && (
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {item.fileIds.length + item.albumIds.length + item.uploadFiles.length} file(s)
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-1">
                             <BouncyClick>

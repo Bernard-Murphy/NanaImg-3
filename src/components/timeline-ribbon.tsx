@@ -43,41 +43,41 @@ export default function TimelineRibbon({
       )
     : null;
 
-  // Add padding to date range (10% on each side)
+  // Add padding to date range (10% on each side, minimum 1 day)
   const paddedDateRange = dateRange
-    ? {
-        min: new Date(
-          dateRange.min.getTime() -
-            (dateRange.max.getTime() - dateRange.min.getTime()) * 0.1
-        ),
-        max: new Date(
-          dateRange.max.getTime() +
-            (dateRange.max.getTime() - dateRange.min.getTime()) * 0.1
-        ),
-      }
+    ? (() => {
+        const timeDiff = dateRange.max.getTime() - dateRange.min.getTime();
+        // If single item or very close dates, add at least 1 week padding on each side
+        const padding = Math.max(timeDiff * 0.1, 7 * 24 * 60 * 60 * 1000);
+        return {
+          min: new Date(dateRange.min.getTime() - padding),
+          max: new Date(dateRange.max.getTime() + padding),
+        };
+      })()
     : null;
 
-  // Initialize lens to cover at least one item
+  // Initialize lens to cover at least one item - only run once when items first appear
   useEffect(() => {
-    if (!initialized && items.length > 0 && paddedDateRange) {
-      // Find the first item position
-      const firstItem = items[0];
-      const start = new Date(firstItem.startDate);
-      const totalTime = paddedDateRange.max.getTime() - paddedDateRange.min.getTime();
-      const itemTime = start.getTime() - paddedDateRange.min.getTime();
-      const itemPercent = (itemTime / totalTime) * 100;
-      
-      // Center the lens on the first item
-      const newPos = Math.max(0, Math.min(70, itemPercent - 15));
-      setLensPosition(newPos);
+    if (!initialized && items.length > 0) {
       setInitialized(true);
+      // Use a small delay to ensure paddedDateRange is calculated
+      setTimeout(() => {
+        setLensPosition(0);
+        setLensWidth(100); // Start with full width to show all items
+      }, 0);
     }
-  }, [items, paddedDateRange, initialized]);
+  }, [initialized, items.length]);
+
+  // Store previous range to avoid unnecessary updates
+  const prevRangeRef = useRef<{ start: number; end: number } | null>(null);
 
   // Calculate visible date range based on lens position
   useEffect(() => {
     if (!paddedDateRange) {
-      onDateRangeChange(null);
+      if (prevRangeRef.current !== null) {
+        prevRangeRef.current = null;
+        onDateRangeChange(null);
+      }
       return;
     }
 
@@ -88,11 +88,19 @@ export default function TimelineRibbon({
       paddedDateRange.min.getTime() +
       (totalTime * (lensPosition + lensWidth)) / 100;
 
-    onDateRangeChange({
-      start: new Date(lensStartTime),
-      end: new Date(lensEndTime),
-    });
-  }, [lensPosition, lensWidth, paddedDateRange, onDateRangeChange]);
+    // Only update if the range actually changed
+    if (
+      !prevRangeRef.current ||
+      prevRangeRef.current.start !== lensStartTime ||
+      prevRangeRef.current.end !== lensEndTime
+    ) {
+      prevRangeRef.current = { start: lensStartTime, end: lensEndTime };
+      onDateRangeChange({
+        start: new Date(lensStartTime),
+        end: new Date(lensEndTime),
+      });
+    }
+  }, [lensPosition, lensWidth, paddedDateRange?.min?.getTime(), paddedDateRange?.max?.getTime(), onDateRangeChange]);
 
   const handleMouseDown = (
     e: React.MouseEvent,
@@ -167,7 +175,7 @@ export default function TimelineRibbon({
     return null;
   }
 
-  // Generate date markers (5 evenly spaced)
+  // Generate date markers (5 evenly spaced) with unique labels
   const dateMarkers = Array.from({ length: 5 }, (_, i) => {
     const percent = (i / 4) * 100;
     const time =
@@ -179,6 +187,54 @@ export default function TimelineRibbon({
     };
   });
 
+  // Check for duplicate labels and make them more specific
+  const labeledMarkers = dateMarkers.map((marker, index) => {
+    // Generate candidate labels for all markers first
+    const candidateLabels = dateMarkers.map(m => 
+      m.date.toLocaleDateString(undefined, {
+        month: "short",
+        year: "numeric",
+      })
+    );
+
+    // Check if this label would be duplicate
+    const myLabel = candidateLabels[index];
+    const hasDuplicate = candidateLabels.filter(l => l === myLabel).length > 1;
+
+    let label: string;
+    if (hasDuplicate) {
+      // Check if we need even more specificity (same day)
+      const sameDayExists = dateMarkers.some((other, otherIndex) => {
+        if (index === otherIndex) return false;
+        return (
+          other.date.getDate() === marker.date.getDate() &&
+          other.date.getMonth() === marker.date.getMonth() &&
+          other.date.getFullYear() === marker.date.getFullYear()
+        );
+      });
+
+      if (sameDayExists) {
+        // Use day + month + time format
+        label = marker.date.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+        });
+      } else {
+        // Use day + month format
+        label = marker.date.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        });
+      }
+    } else {
+      // Use month + year format
+      label = myLabel;
+    }
+
+    return { ...marker, label };
+  });
+
   // Calculate item positions and widths
   const itemPositions = items.map((item) => {
     const start = new Date(item.startDate);
@@ -186,16 +242,16 @@ export default function TimelineRibbon({
     const totalTime = paddedDateRange.max.getTime() - paddedDateRange.min.getTime();
     const itemStartTime = start.getTime() - paddedDateRange.min.getTime();
     const startPercent = (itemStartTime / totalTime) * 100;
-    
+
     let width = 0;
     if (end) {
       const itemEndTime = end.getTime() - paddedDateRange.min.getTime();
       const endPercent = (itemEndTime / totalTime) * 100;
       width = endPercent - startPercent;
     }
-    
-    return { 
-      id: item.id, 
+
+    return {
+      id: item.id,
       startPercent: Math.max(0, Math.min(100, startPercent)),
       width: Math.max(0, width),
       color: item.color,
@@ -216,8 +272,8 @@ export default function TimelineRibbon({
                 <div
                   key={pos.id}
                   className="absolute h-2 rounded-full"
-                  style={{ 
-                    left: `${pos.startPercent}%`, 
+                  style={{
+                    left: `${pos.startPercent}%`,
                     width: `${pos.width}%`,
                     backgroundColor: pos.color,
                     opacity: 0.6,
@@ -229,11 +285,11 @@ export default function TimelineRibbon({
                 <div
                   key={pos.id}
                   className="absolute w-2 h-2 rounded-full -translate-x-1/2"
-                  style={{ 
-                    left: `${pos.startPercent}%`, 
+                  style={{
+                    left: `${pos.startPercent}%`,
                     backgroundColor: pos.color,
                     opacity: 0.6,
-                    top: "0" 
+                    top: "0"
                   }}
                 />
               )
@@ -242,7 +298,7 @@ export default function TimelineRibbon({
 
           {/* Date markers */}
           <div className="absolute inset-x-0 top-12 flex justify-between text-xs text-muted-foreground">
-            {dateMarkers.map((marker, i) => (
+            {labeledMarkers.map((marker, i) => (
               <div
                 key={i}
                 className="flex flex-col items-center"
@@ -250,10 +306,7 @@ export default function TimelineRibbon({
               >
                 <div className="w-px h-2 bg-muted-foreground/30" />
                 <span className="mt-1">
-                  {marker.date.toLocaleDateString(undefined, {
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {marker.label}
                 </span>
               </div>
             ))}

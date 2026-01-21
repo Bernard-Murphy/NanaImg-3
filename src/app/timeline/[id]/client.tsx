@@ -24,7 +24,7 @@ import {
   fade_out,
   normalize,
   fade_out_scale_1,
-  transition,
+  transition_fast,
 } from "@/lib/transitions";
 import BouncyClick from "@/components/ui/bouncy-click";
 import Counter from "@/components/ui/counter";
@@ -184,7 +184,7 @@ export default function TimelinePageClient() {
               animate={normalize}
               exit={fade_out_scale_1}
               key="not-found"
-              transition={transition}
+              transition={transition_fast}
               className="px-4 text-center"
             >
               <Card className="p-8">
@@ -205,7 +205,7 @@ export default function TimelinePageClient() {
               initial={fade_out}
               animate={normalize}
               exit={fade_out_scale_1}
-              transition={transition}
+              transition={transition_fast}
               className="flex gap-4 px-4"
             >
               {/* Main Content Area */}
@@ -225,58 +225,76 @@ export default function TimelinePageClient() {
                   </BouncyClick>
                 </div>
 
-                {/* Timeline Items Display */}
-                {sortedVisibleItems.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-                    {sortedVisibleItems.map((item: any) => {
-                      const allFiles = [
-                        ...item.files,
-                        ...item.albums.flatMap((album: any) => album.files),
-                      ];
-                      const thumbnail = allFiles[0]?.thumbnailUrl;
+                <AnimatePresence mode="wait">
+                  {/* Timeline Items Display */}
+                  {sortedVisibleItems.length > 0 ? (
+                    <motion.div
+                      initial={fade_out}
+                      animate={normalize}
+                      exit={fade_out_scale_1}
+                      transition={transition_fast}
+                      key="items"
+                      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3"
+                    >
+                      {sortedVisibleItems.map((item: any) => {
+                        const allFiles = [
+                          ...item.files,
+                          ...item.albums.flatMap((album: any) => album.files),
+                        ];
+                        const thumbnail = allFiles[0]?.thumbnailUrl;
+                        return (
+                          <AnimatePresence mode="wait" key={item.id}>
+                            <motion.div
+                              initial={fade_out}
+                              animate={normalize}
+                              exit={fade_out}
+                              transition={transition_fast}
+                            >
+                              <BouncyClick>
+                                <Card
+                                  className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
+                                  onClick={() => setSelectedItem(item)}
+                                >
+                                  {thumbnail && (
+                                    <div className="aspect-square relative bg-muted">
+                                      <img
+                                        src={thumbnail}
+                                        alt={item.title || "Timeline item"}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <CardContent className="p-3">
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {new Date(item.startDate).toLocaleDateString()}
+                                      </div>
+                                      <div className="text-sm font-medium truncate">
+                                        {item.title || "Untitled"}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {allFiles.length} file{allFiles.length !== 1 ? "s" : ""}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </BouncyClick>
+                            </motion.div>
+                          </AnimatePresence>
+                        );
+                      })}
+                    </motion.div>
+                  ) : (
+                    <motion.div initial={fade_out} animate={normalize} exit={fade_out_scale_1} transition={transition_fast} key="no-items" className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        {timeline.items?.length === 0
+                          ? "No timeline items yet. Click 'Add Item' to get started"
+                          : "No timeline items found in this date range"}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                      return (
-                        <BouncyClick key={item.id}>
-                          <Card
-                            className="overflow-hidden cursor-pointer hover:border-primary transition-colors"
-                            onClick={() => setSelectedItem(item)}
-                          >
-                            {thumbnail && (
-                              <div className="aspect-square relative bg-muted">
-                                <img
-                                  src={thumbnail}
-                                  alt={item.title || "Timeline item"}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <CardContent className="p-3">
-                              <div className="space-y-1">
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {new Date(item.startDate).toLocaleDateString()}
-                                </div>
-                                <div className="text-sm font-medium truncate">
-                                  {item.title || "Untitled"}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {allFiles.length} file{allFiles.length !== 1 ? "s" : ""}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </BouncyClick>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">
-                      {timeline.items?.length === 0
-                        ? "No timeline items yet. Click 'Add Item' to get started"
-                        : "No timeline items found in this date range"}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Desktop Sidebar */}
