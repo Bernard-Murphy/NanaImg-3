@@ -325,7 +325,10 @@ export default function TimelinePageClient() {
                   )}
                 </div>
                 <Card>
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-6 space-y-4 relative">
+                    <p className="text-sm text-muted-foreground absolute top-2 right-2">
+                      #{timeline.id}
+                    </p>
                     <div className="flex justify-between">
                       <div>
                         <h1 className="text-2xl font-bold mb-2">
@@ -415,7 +418,11 @@ export default function TimelinePageClient() {
               {/* Mobile Info Dialog */}
               <Dialog open={showInfo} onOpenChange={setShowInfo}>
                 <DialogContent className="[&>button]:hidden max-w-lg">
+                  <p className="text-sm text-muted-foreground absolute top-2 right-2">
+                    #{timeline.id}
+                  </p>
                   <div className="space-y-4">
+
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h2 className="text-xl font-bold mb-2">

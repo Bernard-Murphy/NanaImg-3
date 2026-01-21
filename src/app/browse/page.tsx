@@ -450,13 +450,13 @@ function BrowsePageContent() {
 }
 
 const getFileIcon = (mimeType: string) => {
-  if (mimeType.startsWith("image/"))
+  if (mimeType?.startsWith("image/"))
     return <Camera className="h-12 w-12 text-muted-foreground" />;
-  if (mimeType.startsWith("video/"))
+  if (mimeType?.startsWith("video/"))
     return <Film className="h-12 w-12 text-muted-foreground" />;
-  if (mimeType.startsWith("audio/"))
+  if (mimeType?.startsWith("audio/"))
     return <Volume2 className="h-12 w-12 text-muted-foreground" />;
-  if (mimeType.length)
+  if (mimeType?.length)
     return <FileText className="h-12 w-12 text-muted-foreground" />;
   return <FolderOpen className="h-12 w-12 text-muted-foreground" />;
 };
@@ -478,7 +478,7 @@ function BrowseItem({ item }: { item: any }) {
     ? item.files[0]?.thumbnailUrl || null
     : null;
 
-  const showEmbed = thumbnail || (isFile && item.mimeType.startsWith("image/"));
+  const showEmbed = thumbnail || (isFile && item.mimeType?.startsWith("image/"));
   const author = item.user?.username || "Anon";
   const isAnon = !item.user;
 
@@ -503,7 +503,7 @@ function BrowseItem({ item }: { item: any }) {
             </div>
           ) : (
             <div className="aspect-square relative bg-muted flex items-center justify-center">
-              {isTimeline ? <CalendarDays className="h-12 w-12 text-muted-foreground" /> : getFileIcon(item || "")}
+              {isTimeline ? <CalendarDays className="h-12 w-12 text-muted-foreground" /> : getFileIcon(item.mimeType || "")}
             </div>
           )}
 
@@ -513,7 +513,7 @@ function BrowseItem({ item }: { item: any }) {
                 <span className="text-xs font-mono text-muted-foreground">
                   {item.__typename} #{item.id}
                 </span>
-                {isFile && (
+                {isFile && item.mimeType && (
                   <span className="text-xs text-muted-foreground">
                     {item.mimeType.split("/")[1]?.toUpperCase()}
                   </span>
