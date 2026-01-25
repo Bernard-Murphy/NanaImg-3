@@ -95,6 +95,8 @@ export function DateTimePicker({
             selected={selectedDate}
             onSelect={handleDateSelect}
             initialFocus
+            defaultMonth={date}
+            captionLayout="dropdown"
           />
         </PopoverContent>
       </Popover>
