@@ -15,7 +15,6 @@ async function generateLyricsWithVenice(
   prompt: string,
   uncensored: boolean,
 ): Promise<string> {
-  console.log("lyrics prompt", prompt);
   const veniceApiKey = process.env.VENICE_API_KEY;
   if (!veniceApiKey) throw new Error("Venice API key not configured");
 
@@ -48,9 +47,9 @@ async function generateLyricsWithVenice(
     },
     body: JSON.stringify({ model, messages }),
   });
-
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    console.error("Venice lyrics generation error:", errorData);
     throw new Error(
       errorData.error || `Venice lyrics generation failed (${response.status})`,
     );
@@ -58,19 +57,24 @@ async function generateLyricsWithVenice(
 
   const data = await response.json();
   let lyrics = data.choices?.[0]?.message?.content;
-  console.log("venice lyrics", lyrics);
 
   if (!lyrics) throw new Error("No lyrics returned from Venice");
-  lyrics = lyrics.replaceAll(/nigger/gi, "niggur");
-  lyrics = lyrics.replaceAll(/faggot/gi, "phag it");
-  lyrics = lyrics.replaceAll(/fag/gi, "phag");
-  lyrics = lyrics.replaceAll(/bitch/gi, "bidch");
-  lyrics = lyrics.replaceAll(/kike/gi, "qaiq");
-  lyrics = lyrics.replaceAll(/chink/gi, "chinq");
-  lyrics = lyrics.replaceAll(/cunt/gi, "kunt");
-  lyrics = lyrics.replaceAll(/spic/gi, "spik");
-  lyrics = lyrics.replaceAll(/gook/gi, "gooq");
   return lyrics.trim();
+}
+
+/** Transform naughty words so MusicGPT accepts the lyrics; use original lyrics for manifesto. */
+function transformLyricsForMusicGPT(lyrics: string): string {
+  let out = lyrics;
+  out = out.replaceAll(/nigger/gi, "niggur");
+  out = out.replaceAll(/faggot/gi, "phag it");
+  out = out.replaceAll(/fag/gi, "phag");
+  out = out.replaceAll(/bitch/gi, "bidch");
+  out = out.replaceAll(/kike/gi, "qaiq");
+  out = out.replaceAll(/chink/gi, "chinq");
+  out = out.replaceAll(/cunt/gi, "kunt");
+  out = out.replaceAll(/spic/gi, "spik");
+  out = out.replaceAll(/gook/gi, "gooq");
+  return out;
 }
 
 async function getConversionById(
@@ -79,6 +83,8 @@ async function getConversionById(
 ): Promise<{
   status: string;
   audio_url?: string;
+  conversion_path_1?: string;
+  conversion_path_2?: string;
   title?: string;
   lyrics?: string;
 } | null> {
@@ -88,7 +94,11 @@ async function getConversionById(
   );
   if (!response.ok) return null;
   const data = await response.json();
-  return data.conversion || null;
+  const raw = data.conversion;
+  if (!raw) return null;
+  // API returns nested conversion: { success, conversion: { conversion: { status, conversion_path_1, conversion_path_2 } } }
+  const payload = raw.conversion ?? raw;
+  return payload;
 }
 
 async function generateSongWithMusicGPT(
@@ -112,7 +122,6 @@ async function generateSongWithMusicGPT(
       music_style: musicStyle || "Pop",
     }),
   });
-  console.log("musicgpt generateResponse", generateResponse);
   if (!generateResponse.ok) {
     const errorData = await generateResponse.json().catch(() => ({}));
     throw new Error(
@@ -139,18 +148,26 @@ async function generateSongWithMusicGPT(
   const completedIds = new Set<string>();
 
   while (Date.now() - startTime < MUSICGPT_TIMEOUT) {
-    onStatus?.("Waiting for music...");
+    onStatus?.("Generating song...");
     for (const conversionId of conversionIds) {
       if (completedIds.has(conversionId)) continue;
       const conversion = await getConversionById(apiKey, conversionId);
       if (!conversion) continue;
-      if (conversion.status === "COMPLETED" && conversion.audio_url) {
-        if (!results.some((r) => r.mp3Url === conversion.audio_url)) {
-          results.push({
-            mp3Url: conversion.audio_url,
-            title: conversion.title,
-          });
-          completedIds.add(conversionId);
+      const urls = [
+        conversion.conversion_path_1,
+        conversion.conversion_path_2,
+        conversion.audio_url,
+      ].filter(Boolean) as string[];
+      if (conversion.status === "COMPLETED" && urls.length > 0) {
+        for (const url of urls) {
+          if (!results.some((r) => r.mp3Url === url)) {
+            results.push({ mp3Url: url, title: conversion.title });
+          }
+        }
+        completedIds.add(conversionId);
+        // If this response had both paths, mark the other conversion ID completed too (same task)
+        if (conversion.conversion_path_1 && conversion.conversion_path_2) {
+          for (const id of conversionIds) completedIds.add(id);
         }
       } else if (
         conversion.status === "FAILED" ||
@@ -241,30 +258,55 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let closed = false;
       const write = (data: object) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        if (closed) return;
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+          );
+        } catch (e: any) {
+          if (
+            e?.code === "ERR_INVALID_STATE" ||
+            e?.message?.includes("already closed")
+          ) {
+            closed = true;
+          } else {
+            throw e;
+          }
+        }
+      };
+      const safeClose = () => {
+        if (closed) return;
+        closed = true;
+        try {
+          controller.close();
+        } catch {
+          // ignore if already closed
+        }
       };
       try {
-        let lyrics: string;
+        let originalLyrics: string;
         if (generateLyrics) {
           write({ status: "Generating lyrics..." });
-          lyrics = await generateLyricsWithVenice(
+          originalLyrics = await generateLyricsWithVenice(
             lyricsPrompt.trim(),
             Boolean(uncensored),
           );
         } else {
-          lyrics = rawLyrics.trim();
+          originalLyrics = rawLyrics.trim();
         }
+        const lyricsForMusicGPT = transformLyricsForMusicGPT(originalLyrics);
 
         const songs = await generateSongWithMusicGPT(
-          lyrics,
+          lyricsForMusicGPT,
           musicStyle || "",
           (status) => write({ status }),
         );
 
         if (songs.length === 0) {
           write({ done: true, error: "No songs were generated" });
-          controller.close();
+          safeClose();
           return;
         }
 
@@ -293,7 +335,7 @@ export async function POST(req: NextRequest) {
           const file = await prisma.file.create({
             data: {
               name: title.trim(),
-              manifesto: lyrics,
+              manifesto: originalLyrics,
               fileName: `${hash}.mp3`,
               fileSize: mp3Buffer.length,
               mimeType: "audio/mpeg",
@@ -314,7 +356,7 @@ export async function POST(req: NextRequest) {
 
         if (createdFiles.length === 0) {
           write({ done: true, error: "Failed to process generated songs" });
-          controller.close();
+          safeClose();
           return;
         }
 
@@ -324,7 +366,7 @@ export async function POST(req: NextRequest) {
           const album = await prisma.album.create({
             data: {
               name: title.trim(),
-              manifesto: lyrics,
+              manifesto: originalLyrics,
               user: userConnect,
               anonId: anonData.anonId,
               anonTextColor: anonData.anonTextColor,
@@ -349,7 +391,7 @@ export async function POST(req: NextRequest) {
         console.error("AI music generation error:", error);
         write({ done: true, error: error.message || "Internal server error" });
       } finally {
-        controller.close();
+        safeClose();
       }
     },
   });

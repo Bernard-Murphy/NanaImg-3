@@ -330,7 +330,6 @@ function ImageTab() {
             />
             <Label htmlFor="image-anonymous">
               Post anonymously
-              {meData?.me ? "" : " (not logged in; posts use your anon ID)"}
             </Label>
           </div>
         </div>
@@ -489,7 +488,6 @@ function MusicTab() {
   return (
     <div className="space-y-6">
       <Card className="p-6 space-y-4">
-        <p className="text-sm text-muted-foreground text-center">Music generation is slow. I am working to make it faster.</p>
         <div>
           <Label htmlFor="music-title">Title</Label>
           <Input
@@ -582,7 +580,6 @@ function MusicTab() {
             />
             <Label htmlFor="music-anonymous">
               Post anonymously
-              {meData?.me ? "" : " (not logged in; posts use your anon ID)"}
             </Label>
           </div>
         </div>
@@ -687,6 +684,20 @@ function AIPageContent() {
           </AnimatePresence>
         </Tabs>
       </div>
+      <p className="text-xs text-muted-foreground text-center my-4">
+        This site is protected by reCAPTCHA, and the Google{" "}
+        <a href="https://policies.google.com/privacy" className="underline">
+          Privacy Policy
+        </a>{" "}
+        and{" "}
+        <a href="https://policies.google.com/terms" className="underline">
+          Terms of Service
+        </a>{" "}
+        apply.
+      </p>
+      <p className="text-xs text-muted-foreground text-center">
+        Created by Bernard Murphy
+      </p>
     </div>
   );
 }
