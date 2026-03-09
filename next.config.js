@@ -1,24 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['f.feednana.com'],
+    domains: ["f.feednana.com"],
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
     dangerouslyAllowSVG: true,
   },
   // Disable static generation for all pages since we use client-side GraphQL
   experimental: {
-    serverComponentsExternalPackages: ['@apollo/client', '@prisma/client', '.prisma'],
+    serverComponentsExternalPackages: [
+      "@apollo/client",
+      "@prisma/client",
+      ".prisma",
+    ],
   },
   // Disable static optimization
   staticPageGenerationTimeout: 0,
   // Force dynamic rendering for all pages
   generateBuildId: async () => {
-    return 'build-' + Date.now()
+    return "build-" + Date.now();
   },
   // Disable ESLint during build
   eslint: {
@@ -28,8 +32,8 @@ const nextConfig = {
   webpack: (config, { dev }) => {
     if (dev) {
       config.externals.push({
-        'utf-8-validate': 'utf-8-validate',
-        'bufferutil': 'bufferutil',
+        "utf-8-validate": "utf-8-validate",
+        bufferutil: "bufferutil",
       });
     }
 
@@ -42,7 +46,6 @@ const nextConfig = {
 
     return config;
   },
-}
+};
 
-module.exports = nextConfig
-
+module.exports = nextConfig;

@@ -82,7 +82,7 @@ function NavbarContent() {
             <BouncyClick noRipple>
               <Link
                 href="/"
-                className={`text-xl font-bold ${pathname === "/" ? "text-primary" : ""}`}
+                className={`text-xl font-bold`}
               >
                 FEEDNANA
               </Link>
