@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag'
+import { gql } from "graphql-tag";
 
 export const typeDefs = gql`
   scalar DateTime
@@ -28,6 +28,7 @@ export const typeDefs = gql`
     timestamp: DateTime!
     removed: Boolean!
     unlisted: Boolean!
+    nsfw: Boolean!
     userId: Int
     user: User
     anonId: String!
@@ -272,14 +273,23 @@ export const typeDefs = gql`
     reports(page: Int, limit: Int): [Report!]!
     modLogs(page: Int, limit: Int): [ModLog!]!
     users(search: String, page: Int, limit: Int): [User!]!
-    userContent(userId: Int!, type: String, page: Int, limit: Int): BrowseResult!
+    userContent(
+      userId: Int!
+      type: String
+      page: Int
+      limit: Int
+    ): BrowseResult!
     checkImageFile(fileId: Int!): Boolean!
     totalFileCount: Int!
   }
 
   type Mutation {
     register(input: RegisterInput!, recaptchaToken: String): AuthPayload!
-    login(username: String!, password: String!, recaptchaToken: String): AuthPayload!
+    login(
+      username: String!
+      password: String!
+      recaptchaToken: String
+    ): AuthPayload!
     logout: Boolean!
     updateProfile(
       displayName: String
@@ -287,9 +297,17 @@ export const typeDefs = gql`
       avatar: Int
       defaultTheme: String
     ): User!
-    requestPasswordReset(email: String!, username: String!, recaptchaToken: String): Boolean!
-    resetPassword(resetId: String!, password: String!, recaptchaToken: String): AuthPayload!
-    
+    requestPasswordReset(
+      email: String!
+      username: String!
+      recaptchaToken: String
+    ): Boolean!
+    resetPassword(
+      resetId: String!
+      password: String!
+      recaptchaToken: String
+    ): AuthPayload!
+
     initiateUpload(files: [FileInput!]!, recaptchaToken: String): [UploadUrls!]!
     completeUpload(
       uploads: [CompleteUploadInput!]!
@@ -298,9 +316,10 @@ export const typeDefs = gql`
       disableComments: Boolean
       unlisted: Boolean
       anonymous: Boolean
+      nsfw: Boolean
       recaptchaToken: String
     ): FileUploadResult!
-    
+
     createComment(
       flavor: String!
       contentId: Int!
@@ -310,40 +329,32 @@ export const typeDefs = gql`
       recaptchaToken: String
     ): Comment!
     deleteComment(id: Int!): Boolean!
-    
+
     vote(flavor: String!, contentId: Int!, vote: Int!): Boolean!
-    
-    createReport(
-      flavor: String!
-      contentId: Int!
-      reason: String!
-    ): Report!
+
+    createReport(flavor: String!, contentId: Int!, reason: String!): Report!
     dismissReport(id: Int!): Boolean!
-    
+
     deleteContent(flavor: String!, contentId: Int!): Boolean!
     restoreContent(flavor: String!, contentId: Int!): Boolean!
     banUser(userId: Int!): Boolean!
     unbanUser(userId: Int!): Boolean!
     changeUserRole(userId: Int!, role: String!): Boolean!
-    
+
     updateFile(id: Int!, name: String, manifesto: String): File!
     updateAlbum(id: Int!, name: String, manifesto: String): Album!
     deleteFile(id: Int!): Boolean!
     deleteAlbum(id: Int!): Boolean!
-    
+
     createTimeline(
       name: String
       manifesto: String
       unlisted: Boolean
       anonymous: Boolean
     ): Timeline!
-    updateTimeline(
-      id: Int!
-      name: String
-      manifesto: String
-    ): Timeline!
+    updateTimeline(id: Int!, name: String, manifesto: String): Timeline!
     deleteTimeline(id: Int!): Boolean!
-    
+
     createTimelineItem(
       timelineId: Int!
       title: String
@@ -364,7 +375,7 @@ export const typeDefs = gql`
       albumIds: [Int!]
     ): TimelineItem!
     deleteTimelineItem(id: Int!): Boolean!
-    
+
     addTimelineContributor(timelineId: Int!, userId: Int!): TimelineContributor!
     removeTimelineContributor(timelineId: Int!, userId: Int!): Boolean!
   }
@@ -391,5 +402,4 @@ export const typeDefs = gql`
     albumUpdated(id: Int!): Album!
     commentsUpdated(flavor: String!, contentId: Int!): Comment!
   }
-`
-
+`;

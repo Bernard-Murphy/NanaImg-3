@@ -66,6 +66,7 @@ const BROWSE_QUERY = gql`
           timestamp
           thumbnailUrl
           mimeType
+          nsfw
           views
           commentCount
           karma
@@ -130,6 +131,7 @@ const RECENT_COMMENTS_QUERY = gql`
           timestamp
           thumbnailUrl
           mimeType
+          nsfw
           views
           commentCount
           karma
@@ -472,6 +474,8 @@ function BrowseItem({ item }: { item: any }) {
     ? `/album/${item.id}`
     : `/timeline/${item.id}`;
 
+  const isNsfw = isFile && item.nsfw;
+
   const thumbnail = isFile
     ? item.thumbnailUrl || null
     : isAlbum
@@ -486,7 +490,16 @@ function BrowseItem({ item }: { item: any }) {
     <BouncyClick>
       <Link href={href}>
         <Card className="overflow-hidden hover:border-primary transition-colors cursor-pointer">
-          {showEmbed ? (
+          {isNsfw ? (
+            <div className="aspect-square relative bg-muted">
+              <Image
+                src="/nsfw.png"
+                alt="NSFW content"
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : showEmbed ? (
             <div className="aspect-square relative bg-muted">
               {thumbnail ? (
                 <Image

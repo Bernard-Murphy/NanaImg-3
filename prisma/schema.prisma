@@ -39,6 +39,7 @@ model File {
   timestamp          DateTime           @default(now())
   removed            Boolean            @default(false)
   unlisted           Boolean            @default(false)
+  nsfw               Boolean            @default(false)
   userId             Int?
   anonId             String
   anonTextColor      String

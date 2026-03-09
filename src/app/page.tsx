@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { gql, useQuery, useMutation, useSubscription } from "@apollo/client";
 import {
   useFileInput,
@@ -69,6 +70,7 @@ const COMPLETE_UPLOAD_MUTATION = gql`
     $disableComments: Boolean
     $unlisted: Boolean
     $anonymous: Boolean
+    $nsfw: Boolean
   ) {
     completeUpload(
       uploads: $uploads
@@ -77,6 +79,7 @@ const COMPLETE_UPLOAD_MUTATION = gql`
       disableComments: $disableComments
       unlisted: $unlisted
       anonymous: $anonymous
+      nsfw: $nsfw
     ) {
       file {
         id
@@ -104,6 +107,7 @@ function UploadPageContent() {
   const [disableComments, setDisableComments] = useState(false);
   const [unlisted, setUnlisted] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
+  const [nsfw, setNsfw] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   // const { data: countData } = useQuery(FILE_COUNT_QUERY);
@@ -292,6 +296,7 @@ function UploadPageContent() {
           disableComments,
           unlisted,
           anonymous: meData?.me ? anonymous : true,
+          nsfw,
         },
       });
 
@@ -350,7 +355,7 @@ function UploadPageContent() {
               <Button
                 variant="outline"
                 onClick={handleSelectFolder}
-                // disabled={isFileSelecting}
+              // disabled={isFileSelecting}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Select Folder
@@ -373,11 +378,10 @@ function UploadPageContent() {
                 <div
                   id="upload-dropzone"
                   onClick={handleSelectFiles}
-                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                    isDragActive
-                      ? "border-primary bg-primary/10"
-                      : "border-muted-foreground/25"
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${isDragActive
+                    ? "border-primary bg-primary/10"
+                    : "border-muted-foreground/25"
+                    }`}
                 >
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-lg font-medium mb-2">
@@ -389,6 +393,16 @@ function UploadPageContent() {
                     Max file size: 1.5GB
                   </p>
                 </div>
+              </BouncyClick>
+
+              <div className="text-center text-muted-foreground text-sm">
+                -- or --
+              </div>
+
+              <BouncyClick>
+                <Button asChild variant="outline" className="w-full" size="lg">
+                  <Link href="/ai?type=image">Generate with AI</Link>
+                </Button>
               </BouncyClick>
             </motion.div>
           ) : (
@@ -527,19 +541,29 @@ function UploadPageContent() {
               <Label htmlFor="unlisted">Keep unlisted</Label>
             </div>
 
-            {meData?.me && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="anonymous"
-                  checked={anonymous}
-                  onCheckedChange={(checked) =>
-                    setAnonymous(checked as boolean)
-                  }
-                  disabled={uploading}
-                />
-                <Label htmlFor="anonymous">Post anonymously</Label>
-              </div>
-            )}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="anonymous"
+                checked={meData?.me ? anonymous : true}
+                onCheckedChange={(checked) =>
+                  setAnonymous(checked as boolean)
+                }
+                disabled={uploading || !meData?.me}
+              />
+              <Label htmlFor="anonymous">
+                Post anonymously
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="nsfw"
+                checked={nsfw}
+                onCheckedChange={(checked) => setNsfw(checked as boolean)}
+                disabled={uploading}
+              />
+              <Label htmlFor="nsfw">NSFW</Label>
+            </div>
           </div>
         </Card>
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -49,8 +49,12 @@ function NavbarContent() {
   const { data, refetch, loading } = useQuery(ME_QUERY);
   const [logout] = useMutation(LOGOUT_MUTATION);
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = data?.me;
+
+  const linkClass = (href: string) =>
+    `hover:text-primary ${pathname === href ? "text-primary" : ""}`;
 
   const handleLogout = async () => {
     try {
@@ -76,28 +80,38 @@ function NavbarContent() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <BouncyClick noRipple>
-              <Link href="/" className="text-xl font-bold">
+              <Link
+                href="/"
+                className={`text-xl font-bold ${pathname === "/" ? "text-primary" : ""}`}
+              >
                 FEEDNANA
               </Link>
             </BouncyClick>
             <BouncyClick>
               <Button asChild variant="ghost">
-                <Link href="/browse" className="hover:text-primary">
+                <Link href="/browse" className={linkClass("/browse")}>
                   Browse
                 </Link>
               </Button>
             </BouncyClick>
             <BouncyClick>
               <Button asChild variant="ghost">
-                <Link href="/timeline" className="hover:text-primary">
+                <Link href="/timeline" className={linkClass("/timeline")}>
                   Timeline
                 </Link>
               </Button>
             </BouncyClick>
             <BouncyClick>
               <Button asChild variant="ghost">
-                <Link href="/info" className="hover:text-primary">
+                <Link href="/info" className={linkClass("/info")}>
                   Info
+                </Link>
+              </Button>
+            </BouncyClick>
+            <BouncyClick>
+              <Button asChild variant="ghost">
+                <Link href="/ai" className={linkClass("/ai")}>
+                  AI
                 </Link>
               </Button>
             </BouncyClick>
@@ -106,7 +120,10 @@ function NavbarContent() {
           {/* Mobile Navigation */}
           <div className="md:hidden flex items-center space-x-4">
             <BouncyClick noRipple>
-              <Link href="/" className="text-xl font-bold">
+              <Link
+                href="/"
+                className={`text-xl font-bold`}
+              >
                 FEEDNANA
               </Link>
             </BouncyClick>
@@ -221,7 +238,7 @@ function NavbarContent() {
                   >
                     <Link
                       href="/browse"
-                      className="hover:text-primary"
+                      className={linkClass("/browse")}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Browse
@@ -236,7 +253,7 @@ function NavbarContent() {
                   >
                     <Link
                       href="/timeline"
-                      className="hover:text-primary"
+                      className={linkClass("/timeline")}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Timeline
@@ -251,10 +268,25 @@ function NavbarContent() {
                   >
                     <Link
                       href="/info"
-                      className="hover:text-primary"
+                      className={linkClass("/info")}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Info
+                    </Link>
+                  </Button>
+                </BouncyClick>
+                <BouncyClick>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="w-full justify-start"
+                  >
+                    <Link
+                      href="/ai"
+                      className={linkClass("/ai")}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      AI
                     </Link>
                   </Button>
                 </BouncyClick>
@@ -297,6 +329,13 @@ function StaticNavbar() {
               <Button asChild variant="ghost">
                 <Link href="/info" className="hover:text-primary">
                   Info
+                </Link>
+              </Button>
+            </BouncyClick>
+            <BouncyClick>
+              <Button asChild variant="ghost">
+                <Link href="/ai" className="hover:text-primary">
+                  AI
                 </Link>
               </Button>
             </BouncyClick>

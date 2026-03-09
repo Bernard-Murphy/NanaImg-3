@@ -38,3 +38,6 @@ next-env.d.ts
 # prisma
 # prisma/migrations
 
+# AI uncensored prompt
+uncensored-prompt.txt
+

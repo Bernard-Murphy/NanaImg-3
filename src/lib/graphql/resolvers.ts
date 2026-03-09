@@ -15,11 +15,42 @@ import { generateThumbnail } from "../thumbnail";
 import { generateAnonId, generateRandomColor, signJWT } from "../session";
 
 const TIMELINE_COLORS = [
-  '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
-  '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1', '#a855f7', '#d946ef',
-  '#f43f5e', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8',
-  '#c084fc', '#e879f9', '#fb7185', '#dc2626', '#ea580c', '#ca8a04', '#65a30d', '#16a34a',
-  '#0d9488', '#0284c7', '#4f46e5', '#9333ea',
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#f97316",
+  "#eab308",
+  "#84cc16",
+  "#22c55e",
+  "#14b8a6",
+  "#0ea5e9",
+  "#6366f1",
+  "#a855f7",
+  "#d946ef",
+  "#f43f5e",
+  "#fb923c",
+  "#fbbf24",
+  "#a3e635",
+  "#4ade80",
+  "#2dd4bf",
+  "#38bdf8",
+  "#818cf8",
+  "#c084fc",
+  "#e879f9",
+  "#fb7185",
+  "#dc2626",
+  "#ea580c",
+  "#ca8a04",
+  "#65a30d",
+  "#16a34a",
+  "#0d9488",
+  "#0284c7",
+  "#4f46e5",
+  "#9333ea",
 ];
 
 const pubsub = new PubSub();
@@ -53,7 +84,7 @@ async function getKarma(flavor: string, contentId: number): Promise<number> {
 async function getUserVote(
   userId: number | undefined,
   flavor: string,
-  contentId: number
+  contentId: number,
 ): Promise<number | null> {
   if (!userId) return null;
   const vote = await prisma.vote.findFirst({
@@ -446,7 +477,6 @@ export const resolvers = {
       const filter = args.filter || "all";
       const search = (args.search || "").substring(0, 100); // Limit search string length
 
-
       const baseWhere = { removed: false, unlisted: false };
       const fileWhere = { ...baseWhere, albumId: null };
       const albumWhere = baseWhere;
@@ -458,10 +488,13 @@ export const resolvers = {
           skip,
           take: limit,
         });
-        const items = files.map(file => ({ ...file, __typename: "File" }));
+        const items = files.map((file) => ({ ...file, __typename: "File" }));
         return {
           items,
-          total: files.length >= limit ? skip + files.length + 1 : skip + files.length, // Rough estimate
+          total:
+            files.length >= limit
+              ? skip + files.length + 1
+              : skip + files.length, // Rough estimate
           hasMore: files.length >= limit,
         };
       }
@@ -479,10 +512,16 @@ export const resolvers = {
             },
           },
         });
-        const items = albums.map(album => ({ ...album, __typename: "Album" }));
+        const items = albums.map((album) => ({
+          ...album,
+          __typename: "Album",
+        }));
         return {
           items,
-          total: albums.length >= limit ? skip + albums.length + 1 : skip + albums.length,
+          total:
+            albums.length >= limit
+              ? skip + albums.length + 1
+              : skip + albums.length,
           hasMore: albums.length >= limit,
         };
       }
@@ -498,11 +537,17 @@ export const resolvers = {
           },
         });
         // Filter out timelines with no items
-        const timelinesWithItems = timelines.filter(t => t.items.length > 0);
-        const items = timelinesWithItems.map(timeline => ({ ...timeline, __typename: "Timeline" }));
+        const timelinesWithItems = timelines.filter((t) => t.items.length > 0);
+        const items = timelinesWithItems.map((timeline) => ({
+          ...timeline,
+          __typename: "Timeline",
+        }));
         return {
           items,
-          total: timelinesWithItems.length >= limit ? skip + timelinesWithItems.length + 1 : skip + timelinesWithItems.length,
+          total:
+            timelinesWithItems.length >= limit
+              ? skip + timelinesWithItems.length + 1
+              : skip + timelinesWithItems.length,
           hasMore: timelinesWithItems.length >= limit,
         };
       }
@@ -527,21 +572,26 @@ export const resolvers = {
             },
           },
         }),
-        prisma.timeline.findMany({
-          where: baseWhere,
-          orderBy: { timestamp: "desc" },
-          take: fetchLimit,
-          include: {
-            items: { take: 1 },
-          },
-        }).then(timelines => timelines.filter(t => t.items.length > 0)),
+        prisma.timeline
+          .findMany({
+            where: baseWhere,
+            orderBy: { timestamp: "desc" },
+            take: fetchLimit,
+            include: {
+              items: { take: 1 },
+            },
+          })
+          .then((timelines) => timelines.filter((t) => t.items.length > 0)),
       ]);
 
       // Combine and sort by timestamp
       const allItems = [
-        ...files.map(file => ({ ...file, __typename: "File" })),
-        ...albums.map(album => ({ ...album, __typename: "Album" })),
-        ...timelines.map(timeline => ({ ...timeline, __typename: "Timeline" })),
+        ...files.map((file) => ({ ...file, __typename: "File" })),
+        ...albums.map((album) => ({ ...album, __typename: "Album" })),
+        ...timelines.map((timeline) => ({
+          ...timeline,
+          __typename: "Timeline",
+        })),
       ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
       // Apply pagination
@@ -584,7 +634,10 @@ export const resolvers = {
 
       for (const comment of comments) {
         const key = `${comment.flavor}-${comment.contentId}`;
-        if (!contentMap.has(key) || contentMap.get(key).timestamp < comment.timestamp) {
+        if (
+          !contentMap.has(key) ||
+          contentMap.get(key).timestamp < comment.timestamp
+        ) {
           contentMap.set(key, comment);
         }
       }
@@ -647,7 +700,7 @@ export const resolvers = {
             };
           }
           return null;
-        })
+        }),
       );
 
       // Filter out null values
@@ -1198,10 +1251,18 @@ export const resolvers = {
     },
 
     completeUpload: async (_: any, args: any, context: Context) => {
-      const { uploads, name, manifesto, disableComments, unlisted, anonymous } =
-        args;
+      const {
+        uploads,
+        name,
+        manifesto,
+        disableComments,
+        unlisted,
+        anonymous,
+        nsfw,
+      } = args;
 
       const isUnlisted = Boolean(unlisted);
+      const isNsfw = Boolean(nsfw);
 
       const defaultName = name;
 
@@ -1233,7 +1294,7 @@ export const resolvers = {
         await completeMultipartUpload(
           upload.key,
           upload.uploadId,
-          upload.parts
+          upload.parts,
         );
 
         const fileUrl = getFileUrl(upload.key);
@@ -1251,14 +1312,14 @@ export const resolvers = {
             thumbnailUrl = await generateThumbnail(
               fileBuffer,
               upload.mimeType,
-              hashedFileName
+              hashedFileName,
             );
             if (thumbnailUrl) thumbnailUrl = getFileUrl(thumbnailUrl);
           } catch (error) {
             console.error(
               "Error generating thumbnail for file:",
               upload.key,
-              error
+              error,
             );
             // Continue without thumbnail if generation fails
           }
@@ -1280,6 +1341,7 @@ export const resolvers = {
             anonTextBackground,
             album: album ? { connect: { id: album.id } } : undefined,
             unlisted: isUnlisted,
+            nsfw: isNsfw,
           },
         });
 
@@ -1477,31 +1539,33 @@ export const resolvers = {
       if (flavor === "file") {
         const file = await prisma.file.findUnique({
           where: { id: contentId },
-          select: { id: true, removed: true }
+          select: { id: true, removed: true },
         });
         contentExists = file !== null && !file.removed;
       } else if (flavor === "album") {
         const album = await prisma.album.findUnique({
           where: { id: contentId },
-          select: { id: true, removed: true }
+          select: { id: true, removed: true },
         });
         contentExists = album !== null && !album.removed;
       } else if (flavor === "timeline") {
         const timeline = await prisma.timeline.findUnique({
           where: { id: contentId },
-          select: { id: true, removed: true }
+          select: { id: true, removed: true },
         });
         contentExists = timeline !== null && !timeline.removed;
       } else if (flavor === "comment") {
         const comment = await prisma.comment.findUnique({
           where: { id: contentId },
-          select: { id: true, removed: true }
+          select: { id: true, removed: true },
         });
         contentExists = comment !== null && !comment.removed;
       }
 
       if (!contentExists) {
-        throw new Error(`Content with id ${contentId} and flavor ${flavor} does not exist or has been removed`);
+        throw new Error(
+          `Content with id ${contentId} and flavor ${flavor} does not exist or has been removed`,
+        );
       }
 
       // Check if vote already exists
@@ -2031,7 +2095,9 @@ export const resolvers = {
       }
 
       // Create timeline item
-      const selectedColor = color || TIMELINE_COLORS[Math.floor(Math.random() * TIMELINE_COLORS.length)];
+      const selectedColor =
+        color ||
+        TIMELINE_COLORS[Math.floor(Math.random() * TIMELINE_COLORS.length)];
       const timelineItem = await prisma.timelineItem.create({
         data: {
           timelineId,
@@ -2052,8 +2118,8 @@ export const resolvers = {
                 timelineItemId: timelineItem.id,
                 fileId,
               },
-            })
-          )
+            }),
+          ),
         );
       }
 
@@ -2066,8 +2132,8 @@ export const resolvers = {
                 timelineItemId: timelineItem.id,
                 albumId,
               },
-            })
-          )
+            }),
+          ),
         );
       }
 
@@ -2113,7 +2179,8 @@ export const resolvers = {
 
       const updates: any = {};
       if (args.title !== undefined) updates.title = args.title;
-      if (args.description !== undefined) updates.description = args.description;
+      if (args.description !== undefined)
+        updates.description = args.description;
       if (args.startDate !== undefined)
         updates.startDate = new Date(args.startDate);
       if (args.endDate !== undefined)
@@ -2140,8 +2207,8 @@ export const resolvers = {
                   timelineItemId: args.id,
                   fileId,
                 },
-              })
-            )
+              }),
+            ),
           );
         }
       }
@@ -2162,8 +2229,8 @@ export const resolvers = {
                   timelineItemId: args.id,
                   albumId,
                 },
-              })
-            )
+              }),
+            ),
           );
         }
       }
