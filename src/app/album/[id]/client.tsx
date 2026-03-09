@@ -225,7 +225,7 @@ export default function AlbumPageClient() {
     }
   };
 
-  const copyLink = (bb?: boolean, all?: boolean) => {
+  const copyLink = async (bb?: boolean, all?: boolean) => {
     let toCopy = "";
     try {
       if (all) {
@@ -243,11 +243,17 @@ export default function AlbumPageClient() {
       } else {
         toCopy = selectedFile.fileUrl;
         if (bb) toCopy = `[IMG]${toCopy}[/IMG]`;
-        toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
+        try {
+          await navigator.clipboard.writeText(toCopy);
+          toast.success(`${bb ? "BBCode" : "Link"} copied to clipboard`);
+        } catch (err) {
+          console.error(err);
+          toast.error("Failed to copy link(s) to clipboard");
+        }
+        return;
       }
       let textarea;
       let result;
-
       try {
         textarea = document.createElement("textarea");
         textarea.setAttribute("readonly", true);
